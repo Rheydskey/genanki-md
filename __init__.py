@@ -20,6 +20,7 @@ static_html = """
 col = mw.col
 ext_pwd = pathlib.Path(os.path.dirname(__file__))
 card_folder = ext_pwd / "cards/"
+git_repo = "https://git.rheydskey.org/rheydskey/anki-md"
 
 
 class Git:
@@ -37,9 +38,7 @@ class Utils:
     def get_stripped_lines(s: str) -> [str]:
         buf = []
         for line in s.splitlines():
-            print(line)
             strip = line.strip()
-            print(strip)                        
             if len(strip) != 0:
                 buf.append(strip)
 
@@ -162,7 +161,7 @@ def init() -> None:
         os.remove(card_folder)
 
     if not os.path.exists(card_folder):
-        Git().clone("https://git.rheydskey.org/rheydskey/anki-md")
+        Git().clone(git_repo)
 
     deck = mw.col.decks.all()
     deck_name = [d["name"] for d in deck]
