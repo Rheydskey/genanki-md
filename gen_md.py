@@ -61,26 +61,26 @@ class DeckGenerator:
 
     def gen_decks(self, s: str) -> [(str, str, hash)]:
         gen = []
-        buf = ""
+        buf = []
         extend_body = False
         stripped_lines = Utils.get_stripped_lines(s)
         for lines in stripped_lines:
             if lines.startswith("##"):
                 if len(buf) != 0:
-                    if not self.is_note_in_deck(buf):
+                    if not self.is_note_in_deck("\n".join(buf)):
                         gen.append(
-                            CardGenerator(extend=extend_body).gen_note_with_hash(buf)
+                            CardGenerator(extend=extend_body).gen_note_with_hash("\n".join(buf))
                         )
 
                 extend_body = False
-                buf = ""
+                buf = []
 
             if lines.startswith("%"):
                 extend_body = True
-            buf += lines + "\n"
+            buf.append(lines)
 
         if len(buf) != 0:
-            if not self.is_note_in_deck(buf):
-                gen.append(CardGenerator(extend=extend_body).gen_note_with_hash(buf))
+            if not self.is_note_in_deck("\n".join(buf)):
+                gen.append(CardGenerator(extend=extend_body).gen_note_with_hash("\n".join(buf)))
 
         return gen

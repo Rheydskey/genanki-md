@@ -40,7 +40,6 @@ def init_deck(deck: anki.decks.Deck, folder: pathlib.Path):
                     note.fields[0] = recto
                     note.fields[1] = verso
                     note.fields[2] = hash
-
                     mw.col.add_note(note, deck["id"])
 
 
@@ -72,17 +71,6 @@ def init() -> None:
 
     os.chdir(card_folder)
 
-    pull = Git().pull()
-    print(pull)
-    if pull.startswith("Updat"):
-        lines = pull.splitlines()
-
-        update = lines[0]
-        rev_from, rev_to = update.strip("Updating ").split("..")
-        Diff(rev_from, rev_to).update_notes()
-    else:
-        print("No update. Nice no work to do so")
-
     # Git().show("cd46340", "BPF/BPF.md")
 
     deck = mw.col.decks.all()
@@ -101,6 +89,17 @@ def init() -> None:
 
             id = mw.col.decks.id_for_name(name)
             init_deck(mw.col.decks.get(id), folder)
+
+    pull = Git().pull()
+    print(pull)
+    if pull.startswith("Updat"):
+        lines = pull.splitlines()
+
+        update = lines[0]
+        rev_from, rev_to = update.strip("Updating ").split("..")
+        Diff(rev_from, rev_to).update_deck_and_notes(mw)
+    else:
+        print("No update. Nice no work to do so")
 
     mw.deckBrowser.refresh()
 
