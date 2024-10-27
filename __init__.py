@@ -97,7 +97,7 @@ def init() -> None:
 
         update = lines[0]
         rev_from, rev_to = update.strip("Updating ").split("..")
-        Diff(rev_from, rev_to).update_deck_and_notes(mw)
+        Diff(rev_from, rev_to).update_deck_and_notes()
     else:
         print("No update. Nice no work to do so")
 

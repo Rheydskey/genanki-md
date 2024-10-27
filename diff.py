@@ -10,16 +10,27 @@ def get_note_of_scope(source: str, line) -> str:
     Return the note that we are in
     """
     lines = source.splitlines()
+    if len(lines) < line:
+        return None
+
     start_line = None
     for n, i in enumerate(lines[0 : line + 1]):
         if i.startswith("##"):
             start_line = n
     end_line = None
-    for n, i in enumerate(lines[line + 1 :]):
+
+    for n, i in enumerate(lines[line:]):
+        print(i)
         if i.startswith("##"):
             end_line = n
 
-    return "\n".join(lines[start_line:end_line])
+    if start_line is None:
+        return None
+
+    if end_line is None:
+        return "\n".join(lines[start_line:])
+
+    return "\n".join(lines[start_line : (start_line + end_line)])
 
 
 def get_stripped_lines(s: str) -> [str]:
@@ -32,51 +43,31 @@ def get_stripped_lines(s: str) -> [str]:
     return buf
 
 
-class ModifiedFile:
-    def __init__(
-        self, from_source: str, to_source: str, diff: PatchedFile, deck_name: str
-    ):
-        self.from_source = from_source
-        self.to_source = to_source
-        self.diff = diff
-        self.deck_id = mw.col.decks.by_name(deck_name)["id"]
+def is_extends(s: str):
+    return any([True for i in get_stripped_lines(s) if i.startswith("%")])
 
-    def _update_one(self, hunk):
-        from_note = get_note_of_scope(self.from_source, hunk.source_start)
-        to_note = get_note_of_scope(self.to_source, hunk.target_start)
 
-        stripped_lines = get_stripped_lines(from_note)
-        q = f"did:{self.deckid} hash:{hashlib.sha512(bytes("\n".join(stripped_lines), "utf-8")).hexdigest()}"
-        note = mw.col.find_notes(q)[0]
-        unote = mw.col.get_note(note)
-        (recto, verso, hash) = CardGenerator(extend=True).gen_note_with_hash(to_note)
-        unote.fields[0] = recto
-        unote.fields[1] = verso
-        unote.fields[2] = hash
-        mw.col.update_note(unote)
+def create_note(s: str, deckid):
+    model = mw.col.models.all()[0]
+    note = mw.col.new_note(model["id"])
 
-    def _update_many(self, hunk):
-        for i in hunk:
-            pass
+    recto, verso, hash = CardGenerator(extend=is_extends(s)).gen_note_with_hash(s)
 
-    def update(self):
-        for hunk in self.diff:
-            c = str(hunk).count("##")
-            # FIXME: If ## don't start the hunk there is maybe other note
-            if c == 1 or c == 0:
-                self._update_one(hunk)
-            else:
-                self._update_many(hunk)
+    note.fields[0] = recto
+    note.fields[1] = verso
+    note.fields[2] = hash
+    mw.col.add_note(note, deckid)
 
 
 class DeleteFile:
     def __init__(self, from_source: str, deck_name: str):
         self.from_source = from_source
-        self.deck_id = mw.col.decks.by_name(deck_name)["id"]
+        self.deckid = mw.col.decks.by_name(deck_name)["id"]
 
     def _delete_one(self, source: str):
         stripped_lines = get_stripped_lines(source)
-        q = f"did:{self.deck_id} hash:{hashlib.sha512(bytes("\n".join(stripped_lines), "utf-8")).hexdigest()}"
+        q = f"did:{self.deckid} hash:{hashlib.sha512(bytes("\n".join(stripped_lines), "utf-8")).hexdigest()}"
+        print(mw.col.find_notes(q))
         mw.col.remove_notes(mw.col.find_notes(q))
 
     def delete(self):
@@ -84,14 +75,89 @@ class DeleteFile:
             self._delete_one("##" + i)
 
 
+class ModifiedFile:
+    def __init__(
+        self, from_source: str, to_source: str, diff: PatchedFile, deck_name: str
+    ):
+        self.from_source = from_source
+        self.to_source = to_source
+        self.diff = diff
+        self.deckid = mw.col.decks.by_name(deck_name)["id"]
+
+    def _update(self, from_note, to_note):
+        stripped_lines = get_stripped_lines(from_note)
+        q = f"did:{self.deckid} hash:{hashlib.sha512(bytes("\n".join(stripped_lines), "utf-8")).hexdigest()}"
+        note = mw.col.find_notes(q)[0]
+        unote = mw.col.get_note(note)
+        (recto, verso, hash) = CardGenerator(
+            extend=is_extends(to_note)
+        ).gen_note_with_hash(to_note)
+        unote.fields[0] = recto
+        unote.fields[1] = verso
+        unote.fields[2] = hash
+        mw.col.update_note(unote)
+
+    def _update_one(self, hunk):
+        from_note = get_note_of_scope(self.from_source, hunk.source_start)
+        to_note = get_note_of_scope(self.to_source, hunk.target_start)
+        self._update(from_note, to_note)
+
+    def __is_all_deleted_line(self, lines: [any]):
+        return all([i.is_removed for i in lines])
+
+    def __is_all_added_line(self, lines: [any]):
+        return all([i.is_removed for i in lines])
+
+    def create_or_update_note(self, lines: [any], start_line: int) -> None:
+        str_lines = get_stripped_lines("\n".join([f.value for f in lines]))
+        if len(str_lines) == 0:
+            return
+
+        print(start_line)
+        print(str_lines)
+
+        if self.__is_all_deleted_line(lines):
+            note = get_note_of_scope(self.from_source, start_line)
+            DeleteFile(note, mw.col.decks.get(self.deckid)["name"]).delete()
+            return
+
+        if self.__is_all_added_line(lines):
+            unote = get_note_of_scope(self.to_source, start_line)
+            create_note(unote, self.deckid)
+            return
+
+        note = get_note_of_scope(self.from_source, start_line)
+        unote = get_note_of_scope(self.to_source, start_line)
+        self._update(note, unote)
+        return
+
+    def update(self):
+        for hunk in self.diff:
+            print(hunk)
+            start_line = hunk.target_start
+            buf = []
+            for line in hunk:
+                if line.value.startswith("##"):
+                    if len(buf) != 0:
+                        self.create_or_update_note(buf, start_line)
+                        start_line += len(buf)
+                        buf = []
+                buf.append(line)
+
+            if len(buf) != 0:
+                self.create_or_update_note(buf, start_line)
+
+
 class Diff:
     def __init__(self, rev_from: str, rev_to: str):
         self.rev_from = rev_from
         self.rev_to = rev_to
 
-    def update_deck_and_notes(self, mw):
+    def update_deck_and_notes(self):
         for i in PatchSet(Git().diff(self.rev_from, self.rev_to)):
             deck_name = i.path.split("/")[0]
+            if not i.path.endswith(".md"):
+                continue
 
             if i.is_added_file:
                 continue
