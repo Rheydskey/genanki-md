@@ -5,21 +5,21 @@ from aqt import mw
 import hashlib
 
 
-def get_note_of_scope(source: str, line) -> str:
+def get_note_of_scope(source: str, nth) -> str:
     """
-    Return the note that we are in
+    Return the note that contains nth line
     """
     lines = source.splitlines()
-    if len(lines) < line:
+    if len(lines) < nth:
         return None
 
     start_line = None
-    for n, i in enumerate(lines[0 : line + 1]):
+    for n, i in enumerate(lines[0: nth + 1]):
         if i.startswith("##"):
             start_line = n
     end_line = None
 
-    for n, i in enumerate(lines[line:]):
+    for n, i in enumerate(lines[nth:]):
         print(i)
         if i.startswith("##"):
             end_line = n
@@ -30,7 +30,7 @@ def get_note_of_scope(source: str, line) -> str:
     if end_line is None:
         return "\n".join(lines[start_line:])
 
-    return "\n".join(lines[start_line : (start_line + end_line)])
+    return "\n".join(lines[start_line: (start_line + end_line)])
 
 
 def get_stripped_lines(s: str) -> [str]:
@@ -51,7 +51,8 @@ def create_note(s: str, deckid):
     model = mw.col.models.all()[0]
     note = mw.col.new_note(model["id"])
 
-    recto, verso, hash = CardGenerator(extend=is_extends(s)).gen_note_with_hash(s)
+    recto, verso, hash = CardGenerator(
+        extend=is_extends(s)).gen_note_with_hash(s)
 
     note.fields[0] = recto
     note.fields[1] = verso
@@ -67,7 +68,6 @@ class DeleteFile:
     def _delete_one(self, source: str):
         stripped_lines = get_stripped_lines(source)
         q = f"did:{self.deckid} hash:{hashlib.sha512(bytes("\n".join(stripped_lines), "utf-8")).hexdigest()}"
-        print(mw.col.find_notes(q))
         mw.col.remove_notes(mw.col.find_notes(q))
 
     def delete(self):
@@ -87,8 +87,12 @@ class ModifiedFile:
     def _update(self, from_note, to_note):
         stripped_lines = get_stripped_lines(from_note)
         q = f"did:{self.deckid} hash:{hashlib.sha512(bytes("\n".join(stripped_lines), "utf-8")).hexdigest()}"
-        note = mw.col.find_notes(q)[0]
-        unote = mw.col.get_note(note)
+        notes = mw.col.find_notes(q)
+
+        if len(notes) == 0:
+            return
+
+        unote = mw.col.get_note(notes[0])
         (recto, verso, hash) = CardGenerator(
             extend=is_extends(to_note)
         ).gen_note_with_hash(to_note)
@@ -112,9 +116,6 @@ class ModifiedFile:
         str_lines = get_stripped_lines("\n".join([f.value for f in lines]))
         if len(str_lines) == 0:
             return
-
-        print(start_line)
-        print(str_lines)
 
         if self.__is_all_deleted_line(lines):
             note = get_note_of_scope(self.from_source, start_line)
@@ -160,6 +161,7 @@ class Diff:
                 continue
 
             if i.is_added_file:
+                # TODO
                 continue
 
             if i.is_removed_file and not i.is_rename:

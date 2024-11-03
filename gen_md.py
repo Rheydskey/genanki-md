@@ -2,6 +2,7 @@ import anki
 import hashlib
 import marko
 
+
 class Utils:
     def get_stripped_lines(s: str) -> [str]:
         buf = []
@@ -51,7 +52,8 @@ class DeckGenerator:
 
     def refresh_hash(self) -> None:
         notes = self.mw.col.find_notes(f"did:{self.did}")
-        self.hash_notes = [self.mw.col.get_note(note).fields[2] for note in notes]
+        self.hash_notes = [self.mw.col.get_note(
+            note).fields[2] for note in notes]
 
     def is_note_in_deck(self, s: str) -> bool:
         if self.hash_notes is None:
@@ -67,10 +69,11 @@ class DeckGenerator:
         for lines in stripped_lines:
             if lines.startswith("##"):
                 if len(buf) != 0:
-                    if not self.is_note_in_deck("\n".join(buf)):
-                        gen.append(
-                            CardGenerator(extend=extend_body).gen_note_with_hash("\n".join(buf))
-                        )
+                    lines = "\n".join(buf)
+                    if not self.is_note_in_deck(lines):
+                        card = CardGenerator(
+                            extend=extend_body).gen_note_with_hash(lines)
+                        gen.append(card)
 
                 extend_body = False
                 buf = []
@@ -80,7 +83,10 @@ class DeckGenerator:
             buf.append(lines)
 
         if len(buf) != 0:
-            if not self.is_note_in_deck("\n".join(buf)):
-                gen.append(CardGenerator(extend=extend_body).gen_note_with_hash("\n".join(buf)))
+            lines = "\n".join(buf)
+            if not self.is_note_in_deck(lines):
+                card = CardGenerator(
+                    extend=extend_body).gen_note_with_hash(lines)
+                gen.append(card)
 
         return gen

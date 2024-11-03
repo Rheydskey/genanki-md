@@ -10,8 +10,8 @@ from aqt import gui_hooks
 
 sys.path.insert(0, str(pathlib.Path(os.path.dirname(__file__)) / "libs"))
 
-from .diff import Diff
 from .gen_md import DeckGenerator
+from .diff import Diff
 
 static_html = """
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
@@ -71,7 +71,7 @@ def init() -> None:
 
     os.chdir(card_folder)
 
-    # Git().show("cd46340", "BPF/BPF.md")
+    mw.col.create_backup()
 
     deck = mw.col.decks.all()
     deck_name = [d["name"] for d in deck]
@@ -91,7 +91,6 @@ def init() -> None:
             init_deck(mw.col.decks.get(id), folder)
 
     pull = Git().pull()
-    print(pull)
     if pull.startswith("Updat"):
         lines = pull.splitlines()
 
