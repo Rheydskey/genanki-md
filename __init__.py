@@ -58,6 +58,10 @@ def create_model():
     mw.col.models.add_template(model, template)
     return model
 
+def le(f):
+	mw.bottomWeb.setHtml(f"{f}<h1>SKIBILI</h1>")
+
+
 
 def init() -> None:
     os.chdir(ext_pwd)
@@ -99,6 +103,7 @@ def init() -> None:
         print("No update. Nice no work to do so")
 
     mw.deckBrowser.refresh()
+    print(mw.bottomWeb.page().toHtml(le))
 
 
 gui_hooks.profile_did_open.append(init)
