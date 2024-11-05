@@ -71,8 +71,6 @@ def init() -> None:
 
     os.chdir(card_folder)
 
-    mw.col.create_backup()
-
     deck = mw.col.decks.all()
     deck_name = [d["name"] for d in deck]
 
