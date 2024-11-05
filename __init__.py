@@ -1,17 +1,19 @@
-from .git import Git
 import sys
 import os
-
+import time
 import anki
 import pathlib
 from aqt import mw
 from aqt.qt import *
 from aqt import gui_hooks
+from aqt.operations import QueryOp
 
 sys.path.insert(0, str(pathlib.Path(os.path.dirname(__file__)) / "libs"))
 
 from .gen_md import DeckGenerator
 from .diff import Diff
+from .git import Git
+
 
 static_html = """
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
@@ -58,9 +60,30 @@ def create_model():
     mw.col.models.add_template(model, template)
     return model
 
-def le(f):
-	mw.bottomWeb.setHtml(f"{f}<h1>SKIBILI</h1>")
 
+def le(f):
+    mw.bottomWeb.setHtml(f"{f}<h1>SKIBILI</h1>")
+
+
+def update_repo(_):
+    pull = Git().pull()
+    time.sleep(10)
+    if not pull.startswith("Updat"):
+        print("No update. Nice no work to do so")
+        return
+
+    lines = pull.splitlines()
+
+    update = lines[0]
+    rev_from, rev_to = update.strip("Updating ").split("..")
+    return (rev_from, rev_to)
+
+
+def refresh_card(x):
+    if x is None:
+        return
+    (rev_from, rev_to) = x
+    Diff(rev_from, rev_to).update_deck_and_notes()
 
 
 def init() -> None:
@@ -92,18 +115,16 @@ def init() -> None:
             id = mw.col.decks.id_for_name(name)
             init_deck(mw.col.decks.get(id), folder)
 
-    pull = Git().pull()
-    if pull.startswith("Updat"):
-        lines = pull.splitlines()
+    op = QueryOp(
+        parent=mw,
+        op=update_repo,
+        success=refresh_card,
+    )
 
-        update = lines[0]
-        rev_from, rev_to = update.strip("Updating ").split("..")
-        Diff(rev_from, rev_to).update_deck_and_notes()
-    else:
-        print("No update. Nice no work to do so")
+    op.with_progress(label="Update git repo").run_in_background()
 
     mw.deckBrowser.refresh()
-    print(mw.bottomWeb.page().toHtml(le))
+    # print(mw.bottomWeb.page().toHtml(le))
 
 
 gui_hooks.profile_did_open.append(init)
