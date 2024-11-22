@@ -30,7 +30,9 @@ git_repo = "https://git.rheydskey.org/rheydskey/anki-md"
 
 def get_from_title(note_title, cards: [(str, str, any)]) -> int | None:
     try:
-        return list(map(lambda v: "\n".join(v[0]).strip(), cards)).index(note_title.strip())
+        return list(map(lambda v: "\n".join(v[0]).strip(), cards)).index(
+            note_title.strip()
+        )
     except:
         return None
 
@@ -107,17 +109,18 @@ def migrate_old_card(deck: anki.decks.Deck, folder: pathlib.Path):
         ).hexdigest()
         for (r, v, _) in cards
     ]
-    
+
     n = 0
     for n, note_hash in enumerate(notes_hash):
         if note_hash in card_hash:
             card = cards[card_hash.index(note_hash)]
             convert(notes[n], card, mw.col.models.by_name("Ankill"))
         else:
-            print(f"Cannot migrate {notes[n]}")
             last_try = get_from_title(notes_content[n][0], cards)
             if last_try is not None:
                 convert(notes[n], cards[last_try], mw.col.models.by_name("Ankill"))
+            else:
+                print(f"Cannot migrate {notes[n]}")
 
 
 def init_deck(deck: anki.decks.Deck, folder: pathlib.Path):

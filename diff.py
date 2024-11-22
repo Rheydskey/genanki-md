@@ -21,7 +21,6 @@ def get_note_of_scope(source: str, nth) -> str:
     end_line = None
 
     for n, i in enumerate(lines[nth:]):
-        print(i)
         if i.startswith("##"):
             end_line = n
 
@@ -122,7 +121,6 @@ class ModifiedFile:
 
     def update(self):
         for hunk in self.diff:
-            print(hunk)
             start_line = hunk.target_start
             buf = []
             for line in hunk:
