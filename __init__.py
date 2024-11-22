@@ -1,6 +1,5 @@
 import sys
 import os
-import time
 import anki
 import pathlib
 from aqt import mw
@@ -33,7 +32,6 @@ def init_deck(deck: anki.decks.Deck, folder: pathlib.Path):
     for entry in folder.iterdir():
         filename, fileext = os.path.splitext(entry)
         if entry.is_file() and fileext == ".md":
-            print(entry)
             with open(entry, "r") as file:
                 deck_gen = DeckGenerator(deck["id"], mw)
                 for recto, verso, hash in deck_gen.gen_decks(file.read()):
@@ -60,14 +58,8 @@ def create_model():
     mw.col.models.add_template(model, template)
     return model
 
-
-def le(f):
-    mw.bottomWeb.setHtml(f"{f}<h1>SKIBILI</h1>")
-
-
-def update_repo(_):
+def update_repo(e):
     pull = Git().pull()
-    time.sleep(10)
     if not pull.startswith("Updat"):
         print("No update. Nice no work to do so")
         return
@@ -122,9 +114,7 @@ def init() -> None:
     )
 
     op.with_progress(label="Update git repo").run_in_background()
-
     mw.deckBrowser.refresh()
-    # print(mw.bottomWeb.page().toHtml(le))
 
 
 gui_hooks.profile_did_open.append(init)
