@@ -1,17 +1,7 @@
 import anki
 import hashlib
 import marko
-
-
-class Utils:
-    def get_stripped_lines(s: str) -> [str]:
-        buf = []
-        for line in s.splitlines():
-            strip = line.strip()
-            if len(strip) != 0:
-                buf.append(strip)
-
-        return buf
+from .utils import get_stripped_lines
 
 
 class CardGenerator:
@@ -61,32 +51,34 @@ class DeckGenerator:
 
         return hashlib.sha512(bytes(s, "utf-8")).hexdigest() in self.hash_notes
 
-    def gen_decks(self, s: str) -> [(str, str, hash)]:
-        gen = []
+    def get_md_cards(self, lines: [str]) -> [[str]]:
         buf = []
-        extend_body = False
-        stripped_lines = Utils.get_stripped_lines(s)
-        for lines in stripped_lines:
-            if lines.startswith("##"):
-                if len(buf) != 0:
-                    lines = "\n".join(buf)
-                    if not self.is_note_in_deck(lines):
-                        card = CardGenerator(
-                            extend=extend_body).gen_note_with_hash(lines)
-                        gen.append(card)
+        card = []
+        for line in lines:
+            if line.startswith("##") and len(card) != 0:
+                buf.append(card)
+                card = []
+            card.append(line)
+        if len(card) != 0:
+            buf.append(card)
+        return buf
 
-                extend_body = False
-                buf = []
+    def is_extend_body(self, lines: [str]) -> bool:
+        return any([line.startswith("%") for line in lines])
 
-            if lines.startswith("%"):
-                extend_body = True
-            buf.append(lines)
+    def gen_decks(self, s: str) -> [(str, str, hash)]:
+        gen_cards = []
+        stripped_lines = get_stripped_lines(s)
+        cards = self.get_md_cards(stripped_lines)
 
-        if len(buf) != 0:
-            lines = "\n".join(buf)
+        for card in cards:
+            extend_body = self.is_extend_body(card)
+            lines = "\n".join(card)
             if not self.is_note_in_deck(lines):
                 card = CardGenerator(
                     extend=extend_body).gen_note_with_hash(lines)
-                gen.append(card)
+                gen_cards.append(card)
 
-        return gen
+
+        return gen_cards
+

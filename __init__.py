@@ -1,17 +1,18 @@
-from .git import Git
 import sys
 import os
-
 import anki
 import pathlib
 from aqt import mw
 from aqt.qt import *
 from aqt import gui_hooks
+from aqt.operations import QueryOp
 
 sys.path.insert(0, str(pathlib.Path(os.path.dirname(__file__)) / "libs"))
 
 from .gen_md import DeckGenerator
 from .diff import Diff
+from .git import Git
+
 
 static_html = """
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
@@ -31,7 +32,6 @@ def init_deck(deck: anki.decks.Deck, folder: pathlib.Path):
     for entry in folder.iterdir():
         filename, fileext = os.path.splitext(entry)
         if entry.is_file() and fileext == ".md":
-            print(entry)
             with open(entry, "r") as file:
                 deck_gen = DeckGenerator(deck["id"], mw)
                 for recto, verso, hash in deck_gen.gen_decks(file.read()):
@@ -57,6 +57,25 @@ def create_model():
     template["afmt"] = "{{FrontSide}}\n\n<hr id=answer>\n\n{{Verso}}"
     mw.col.models.add_template(model, template)
     return model
+
+def update_repo(e):
+    pull = Git().pull()
+    if not pull.startswith("Updat"):
+        print("No update. Nice no work to do so")
+        return
+
+    lines = pull.splitlines()
+
+    update = lines[0]
+    rev_from, rev_to = update.strip("Updating ").split("..")
+    return (rev_from, rev_to)
+
+
+def refresh_card(x):
+    if x is None:
+        return
+    (rev_from, rev_to) = x
+    Diff(rev_from, rev_to).update_deck_and_notes()
 
 
 def init() -> None:
@@ -88,16 +107,13 @@ def init() -> None:
             id = mw.col.decks.id_for_name(name)
             init_deck(mw.col.decks.get(id), folder)
 
-    pull = Git().pull()
-    if pull.startswith("Updat"):
-        lines = pull.splitlines()
+    op = QueryOp(
+        parent=mw,
+        op=update_repo,
+        success=refresh_card,
+    )
 
-        update = lines[0]
-        rev_from, rev_to = update.strip("Updating ").split("..")
-        Diff(rev_from, rev_to).update_deck_and_notes()
-    else:
-        print("No update. Nice no work to do so")
-
+    op.with_progress(label="Update git repo").run_in_background()
     mw.deckBrowser.refresh()
 
 
