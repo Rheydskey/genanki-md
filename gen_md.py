@@ -41,7 +41,7 @@ class DeckGenerator:
         self.mw = mw
 
     def refresh_hash(self) -> None:
-        notes = self.mw.col.find_notes(f"did:{self.did}")
+        notes = self.mw.col.find_notes(f"did:{self.did} note:Ankill")
         self.hash_notes = [self.mw.col.get_note(
             note).fields[2] for note in notes]
 
@@ -49,6 +49,7 @@ class DeckGenerator:
         if self.hash_notes is None:
             self.refresh_hash()
 
+        # Hash should be an hash of the input lines of card
         return hashlib.sha512(bytes(s, "utf-8")).hexdigest() in self.hash_notes
 
     def get_md_cards(self, lines: [str]) -> [[str]]:

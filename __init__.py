@@ -2,6 +2,7 @@ import sys
 import os
 import anki
 import pathlib
+import hashlib
 from aqt import mw
 from aqt.qt import *
 from aqt import gui_hooks
@@ -26,9 +27,66 @@ card_folder = ext_pwd / "cards/"
 git_repo = "https://git.rheydskey.org/rheydskey/anki-md"
 
 
+def migrate_old_card(deck: anki.decks.Deck, folder: pathlib.Path):
+    did = deck["id"]
+
+    q = f"did:{did} -note:Ankill"
+    notes = mw.col.find_notes(q)
+    notes_content = [
+        (mw.col.get_note(note).fields[0], mw.col.get_note(note).fields[1])
+        for note in notes
+    ]
+    notes_hash = [
+        hashlib.sha512(bytes(f"{r.strip()}{v.strip()}", "utf-8")).hexdigest()
+        for (r, v) in notes_content
+    ]
+
+    if len(notes) == 0:
+        return
+
+    deck_gen = DeckGenerator(deck["id"], mw)
+    cards = []
+    for entry in folder.iterdir():
+        filename, fileext = os.path.splitext(entry)
+        if entry.is_file() and fileext == ".md":
+            with open(entry, "r") as file:
+                cards.extend(deck_gen.gen_decks(file.read()))
+
+    card_hash = [
+        hashlib.sha512(bytes(f"{r.strip()}{v.strip()}", "utf-8")).hexdigest()
+        for (r, v, _) in cards
+    ]
+
+    for n, note_hash in enumerate(notes_hash):
+        if note_hash in card_hash:
+            card = cards[card_hash.index(note_hash)]
+            model = mw.col.models.all()[0]
+            note = mw.col.get_note(notes[0])
+
+            old_notetype_id = note.note_type()["id"]
+            new_notetype_id = model["id"]
+
+            payload = mw.col.models.change_notetype_info(
+                old_notetype_id=old_notetype_id, new_notetype_id=new_notetype_id
+            )
+            req = payload.input
+            req.note_ids.extend([notes[0]])
+            mw.col.models.change_notetype_of_notes(req)
+
+            note = mw.col.get_note(notes[0])
+
+            note.fields[0] = card[0]
+            note.fields[1] = card[1]
+            note.fields[2] = card[2]
+
+            mw.col.update_note(note)
+
+
 def init_deck(deck: anki.decks.Deck, folder: pathlib.Path):
     if not folder.is_dir():
         return
+
+    migrate_old_card(deck, folder)
     for entry in folder.iterdir():
         filename, fileext = os.path.splitext(entry)
         if entry.is_file() and fileext == ".md":
@@ -57,6 +115,7 @@ def create_model():
     template["afmt"] = "{{FrontSide}}\n\n<hr id=answer>\n\n{{Verso}}"
     mw.col.models.add_template(model, template)
     return model
+
 
 def update_repo(e):
     pull = Git().pull()
