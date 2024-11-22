@@ -1,5 +1,5 @@
 def get_stripped_lines(s: str) -> [str]:
-    return [line.strip() for line in s.splitlines() if len(line.strip()) != 0]
+    return [line.strip() for line in s.splitlines()]
 
 
 def is_extends(s: str):
