@@ -16,7 +16,6 @@ class MdAnkiMigrator:
         convert_lines = []
         
         for line in stripped_lines:
-            print(line)
             if "id=" in line:
                 line = re.sub(' ?id="[a-zÀ-ÿ0-9-]+"', "", line, flags=re.IGNORECASE)
             if "<br>" in line:
@@ -24,8 +23,6 @@ class MdAnkiMigrator:
             if "\\" in line:
                 line = re.sub("\\\\\\\\", "\\\\", line)
             line = html.unescape(line)
-            print(line)
-            print("\n\n\n")
             convert_lines.append(line.strip())
 
         return "\n".join(convert_lines)
