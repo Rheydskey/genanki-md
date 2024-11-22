@@ -1,6 +1,7 @@
 from unidiff import PatchedFile, PatchSet
 from .git import Git
 from .gen_md import CardGenerator
+from .utils import get_stripped_lines,is_extends
 from aqt import mw
 import hashlib
 
@@ -32,19 +33,6 @@ def get_note_of_scope(source: str, nth) -> str:
 
     return "\n".join(lines[start_line: (start_line + end_line)])
 
-
-def get_stripped_lines(s: str) -> [str]:
-    buf = []
-    for line in s.splitlines():
-        strip = line.strip()
-        if len(strip) != 0:
-            buf.append(strip)
-
-    return buf
-
-
-def is_extends(s: str):
-    return any([True for i in get_stripped_lines(s) if i.startswith("%")])
 
 
 def create_note(s: str, deckid):
