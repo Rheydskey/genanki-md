@@ -3,7 +3,6 @@ import os
 import anki
 import pathlib
 from aqt import mw
-from aqt.qt import *
 from aqt import gui_hooks
 from aqt.operations import QueryOp
 

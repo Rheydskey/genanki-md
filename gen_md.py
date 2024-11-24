@@ -80,6 +80,5 @@ class DeckGenerator:
                     extend=extend_body).gen_note_with_hash(lines)
                 gen_cards.append(card)
 
-
         return gen_cards
 

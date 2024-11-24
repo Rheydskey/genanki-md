@@ -97,6 +97,7 @@ class ModifiedFile:
         return all([i.is_removed for i in lines])
 
     def create_or_update_note(self, lines: [any], start_line: int, model) -> None:
+        # FIXME: Remove stripped line and strip on value. Side-effect ?
         str_lines = get_stripped_lines("\n".join([f.value for f in lines]))
         if len(str_lines) == 0:
             return

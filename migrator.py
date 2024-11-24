@@ -17,7 +17,7 @@ def get_from_title(note_title, cards: [(str, str, any)]) -> int | None:
         return list(map(lambda v: "\n".join(v[0]).strip(), cards)).index(
             note_title.strip()
         )
-    except:
+    except ValueError:
         return None
 
 
