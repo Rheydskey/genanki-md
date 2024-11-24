@@ -21,7 +21,7 @@ def get_from_title(note_title, cards: [(str, str, any)]) -> int | None:
         return None
 
 
-def get_convert_content_of_note(note, migrator):
+def get_converted_content_of_note(note, migrator):
     return (
         migrator.convert(mw.col.get_note(note).fields[0]),
         migrator.convert(mw.col.get_note(note).fields[1]),
