@@ -1,7 +1,7 @@
 from unidiff import PatchedFile, PatchSet
 from .git import Git
 from .gen_md import CardGenerator
-from .utils import get_stripped_lines,is_extends
+from .utils import get_stripped_lines, is_extends
 from aqt import mw
 import hashlib
 
@@ -15,7 +15,7 @@ def get_note_of_scope(source: str, nth) -> str:
         return None
 
     start_line = None
-    for n, i in enumerate(lines[0: nth + 1]):
+    for n, i in enumerate(lines[0 : nth + 1]):
         if i.startswith("##"):
             start_line = n
     end_line = None
@@ -30,16 +30,13 @@ def get_note_of_scope(source: str, nth) -> str:
     if end_line is None:
         return "\n".join(lines[start_line:])
 
-    return "\n".join(lines[start_line: (start_line + end_line)])
+    return "\n".join(lines[start_line : (start_line + end_line)])
 
 
-
-def create_note(s: str, deckid):
-    model = mw.col.models.all()[0]
+def create_note(s: str, deckid, model):
     note = mw.col.new_note(model["id"])
 
-    recto, verso, hash = CardGenerator(
-        extend=is_extends(s)).gen_note_with_hash(s)
+    recto, verso, hash = CardGenerator(extend=is_extends(s)).gen_note_with_hash(s)
 
     note.fields[0] = recto
     note.fields[1] = verso
@@ -48,9 +45,9 @@ def create_note(s: str, deckid):
 
 
 class DeleteFile:
-    def __init__(self, from_source: str, deck_name: str):
+    def __init__(self, from_source: str, deck: str):
         self.from_source = from_source
-        self.deckid = mw.col.decks.by_name(deck_name)["id"]
+        self.deckid = deck["id"]
 
     def _delete_one(self, source: str):
         stripped_lines = get_stripped_lines(source)
@@ -64,12 +61,12 @@ class DeleteFile:
 
 class ModifiedFile:
     def __init__(
-        self, from_source: str, to_source: str, diff: PatchedFile, deck_name: str
+        self, from_source: str, to_source: str, diff: PatchedFile, deck
     ):
         self.from_source = from_source
         self.to_source = to_source
         self.diff = diff
-        self.deckid = mw.col.decks.by_name(deck_name)["id"]
+        self.deckid = deck["id"]
 
     def _update(self, from_note, to_note):
         stripped_lines = get_stripped_lines(from_note)
@@ -99,7 +96,7 @@ class ModifiedFile:
     def __is_all_added_line(self, lines: [any]):
         return all([i.is_removed for i in lines])
 
-    def create_or_update_note(self, lines: [any], start_line: int) -> None:
+    def create_or_update_note(self, lines: [any], start_line: int, model) -> None:
         str_lines = get_stripped_lines("\n".join([f.value for f in lines]))
         if len(str_lines) == 0:
             return
@@ -111,7 +108,8 @@ class ModifiedFile:
 
         if self.__is_all_added_line(lines):
             unote = get_note_of_scope(self.to_source, start_line)
-            create_note(unote, self.deckid)
+
+            create_note(unote, self.deckid, model)
             return
 
         note = get_note_of_scope(self.from_source, start_line)
@@ -120,19 +118,20 @@ class ModifiedFile:
         return
 
     def update(self):
+        model = mw.col.models.by_name("Ankill")
         for hunk in self.diff:
             start_line = hunk.target_start
             buf = []
             for line in hunk:
                 if line.value.startswith("##"):
                     if len(buf) != 0:
-                        self.create_or_update_note(buf, start_line)
+                        self.create_or_update_note(buf, start_line, model)
                         start_line += len(buf)
                         buf = []
                 buf.append(line)
 
             if len(buf) != 0:
-                self.create_or_update_note(buf, start_line)
+                self.create_or_update_note(buf, start_line, model)
 
 
 class Diff:
@@ -143,6 +142,7 @@ class Diff:
     def update_deck_and_notes(self):
         for i in PatchSet(Git().diff(self.rev_from, self.rev_to)):
             deck_name = i.path.split("/")[0]
+            deck = mw.col.decks.by_name(deck_name)            
             if not i.path.endswith(".md"):
                 continue
 
@@ -152,9 +152,9 @@ class Diff:
 
             if i.is_removed_file and not i.is_rename:
                 from_source = Git().show(self.rev_from, i.path)
-                DeleteFile(from_source, deck_name).delete()
+                DeleteFile(from_source, deck).delete()
 
             if i.is_modified_file:
                 from_source = Git().show(self.rev_from, i.path)
                 to_source = Git().show(self.rev_to, i.path)
-                ModifiedFile(from_source, to_source, i, deck_name).update()
+                ModifiedFile(from_source, to_source, i, deck).update()

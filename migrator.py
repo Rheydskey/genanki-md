@@ -34,15 +34,14 @@ def strip_card(card):
 def gen_and_strip(input, gen):
     return list(map(strip_card, gen.gen_decks(input)))
 
-def convert(noteid, card):
-    model = mw.col.models.by_name("Ankill")
+def convert(noteid, card, modelid):
+
     note = mw.col.get_note(noteid)
 
     old_notetype_id = note.note_type()["id"]
-    new_notetype_id = model["id"]
 
     payload = mw.col.models.change_notetype_info(
-        old_notetype_id=old_notetype_id, new_notetype_id=new_notetype_id
+        old_notetype_id=old_notetype_id, new_notetype_id=modelid
     )
     req = payload.input
     req.note_ids.extend([noteid])
@@ -79,13 +78,15 @@ def migrate_old_card(deck: anki.decks.Deck, folder: pathlib.Path):
 
     card_hash = [hash_card("\n".join(r), "\n".join(v)) for (r, v, _) in cards]
 
+
+    model = mw.col.models.by_name("Ankill")
     for n, note_hash in enumerate(notes_hash):
         if note_hash in card_hash:
             card = cards[card_hash.index(note_hash)]
-            convert(notes[n], card)
+            convert(notes[n], card, model["id"])
         else:
             last_try = get_from_title(notes_content[n][0], cards)
             if last_try is not None:
-                convert(notes[n], cards[last_try])
+                convert(notes[n], cards[last_try], model["id"])
             else:
                 print(f"Cannot migrate {notes[n]}")
