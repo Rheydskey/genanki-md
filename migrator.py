@@ -63,7 +63,7 @@ def migrate_old_card(deck: anki.decks.Deck, folder: pathlib.Path):
     q = f"did:{did} -note:Ankill"
     notes = mw.col.find_notes(q)
     migrator = MdAnkiMigrator()
-    notes_content = [get_convert_content_of_note(note, migrator) for note in notes]
+    notes_content = [get_converted_content_of_note(note, migrator) for note in notes]
     notes_hash = [hash_card(r, v) for (r, v) in notes_content]
 
     if len(notes) == 0:

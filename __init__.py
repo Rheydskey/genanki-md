@@ -31,13 +31,13 @@ def init_deck(deck: anki.decks.Deck, folder: pathlib.Path):
         return
 
     migrate_old_card(deck, folder)
+    model = mw.col.models.by_name("Ankill")
+    deck_gen = DeckGenerator(deck["id"], mw)
     for entry in folder.iterdir():
         filename, fileext = os.path.splitext(entry)
         if entry.is_file() and fileext == ".md":
             with open(entry, "r") as file:
-                deck_gen = DeckGenerator(deck["id"], mw)
                 for recto, verso, hash in deck_gen.gen_decks(file.read()):
-                    model = mw.col.models.by_name("Ankill")
                     note = mw.col.new_note(model["id"])
                     note.fields[0] = recto
                     note.fields[1] = verso
