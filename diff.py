@@ -60,9 +60,7 @@ class DeleteFile:
 
 
 class ModifiedFile:
-    def __init__(
-        self, from_source: str, to_source: str, diff: PatchedFile, deck
-    ):
+    def __init__(self, from_source: str, to_source: str, diff: PatchedFile, deck):
         self.from_source = from_source
         self.to_source = to_source
         self.diff = diff
@@ -143,7 +141,7 @@ class Diff:
     def update_deck_and_notes(self):
         for i in PatchSet(Git().diff(self.rev_from, self.rev_to)):
             deck_name = i.path.split("/")[0]
-            deck = mw.col.decks.by_name(deck_name)            
+            deck = mw.col.decks.by_name(deck_name)
             if not i.path.endswith(".md"):
                 continue
 

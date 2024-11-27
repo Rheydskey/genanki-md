@@ -10,9 +10,8 @@ class CardGenerator:
         self.recto = ""
         self.verso = ""
         self.extend = extend
-        self.hash_of_raw = None
 
-    def fillBuffers(self, s: str):
+    def fill_buffers(self, s: str):
         if self.extend:
             splitter_at = s.find("%")
             end_recto = s.rfind("\n", 0, splitter_at)
@@ -25,13 +24,13 @@ class CardGenerator:
             self.verso += "\n".join(lines[1:])
 
     def gen_note(self, s: str) -> (str, str):
-        self.hash_of_raw = hashlib.sha512(bytes(s, "utf-8")).hexdigest()
-        self.fillBuffers(s)
+        self.fill_buffers(s)
         return (self.marko.convert(self.recto), self.marko.convert(self.verso))
 
     def gen_note_with_hash(self, s: str):
+        hash_of_raw = hashlib.sha512(bytes(s, "utf-8")).hexdigest()
         (recto, verso) = self.gen_note(s)
-        return (recto, verso, self.hash_of_raw)
+        return (recto, verso, hash_of_raw)
 
 
 class DeckGenerator:
@@ -42,14 +41,13 @@ class DeckGenerator:
 
     def refresh_hash(self) -> None:
         notes = self.mw.col.find_notes(f"did:{self.did} note:Ankill")
-        self.hash_notes = [self.mw.col.get_note(
-            note).fields[2] for note in notes]
+        self.hash_notes = [self.mw.col.get_note(note).fields[2] for note in notes]
 
     def is_note_in_deck(self, s: str) -> bool:
         if self.hash_notes is None:
             self.refresh_hash()
 
-        # Hash should be an hash of the input lines of card
+        # Hash should always be an hash of the input lines of card not of the generated html
         return hashlib.sha512(bytes(s, "utf-8")).hexdigest() in self.hash_notes
 
     def get_md_cards(self, lines: [str]) -> [[str]]:
@@ -76,9 +74,7 @@ class DeckGenerator:
             extend_body = self.is_extend_body(card)
             lines = "\n".join(card)
             if not self.is_note_in_deck(lines):
-                card = CardGenerator(
-                    extend=extend_body).gen_note_with_hash(lines)
+                card = CardGenerator(extend=extend_body).gen_note_with_hash(lines)
                 gen_cards.append(card)
 
         return gen_cards
-

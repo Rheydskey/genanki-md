@@ -2,8 +2,8 @@ import sys
 import os
 import anki
 import pathlib
-from aqt import mw
-from aqt import gui_hooks
+from aqt import mw, gui_hooks
+from aqt.utils import showWarning
 from aqt.operations import QueryOp
 
 sys.path.insert(0, str(pathlib.Path(os.path.dirname(__file__)) / "libs"))
@@ -19,9 +19,10 @@ static_html = """
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
 """
 
-col = mw.col
-ext_pwd = pathlib.Path(os.path.dirname(__file__))
-card_folder = ext_pwd / "cards/"
+addon_path = pathlib.Path(os.path.dirname(__file__))
+# https://addon-docs.ankiweb.net/addon-config.html#user-files
+user_files = addon_path / "user_files"
+card_folder = user_files / "cards/"
 git_repo = "https://git.rheydskey.org/rheydskey/anki-md"
 
 
@@ -61,6 +62,7 @@ def create_model():
 
 
 def update_repo(e):
+    os.chdir(card_folder)
     pull = Git().pull()
     if not pull.startswith("Updat"):
         print("No update. Nice no work to do so")
@@ -81,7 +83,16 @@ def refresh_card(x):
 
 
 def init() -> None:
-    os.chdir(ext_pwd)
+    if git_repo == "__YOUR_REPO__":
+        showWarning("Please change the url of your git repo")
+        return
+
+    # Initialize user_files folder
+    if not os.path.isdir(user_files):
+        os.remove(user_files)
+
+    if not os.path.exists(user_files):
+        os.makedirs(user_files)
 
     if not os.path.exists(card_folder):
         Git().clone(git_repo, card_folder)
@@ -89,8 +100,6 @@ def init() -> None:
     if not os.path.isdir(card_folder):
         os.remove(card_folder)
         Git().clone(git_repo, card_folder)
-
-    os.chdir(card_folder)
 
     mw.create_backup_now()
 

@@ -5,18 +5,17 @@ import hashlib
 from aqt import mw
 from .gen_md import DeckGenerator
 from .utils import get_stripped_lines
-from .mdanki import MdAnkiMigrator
+from .migrators.mdanki import MdAnkiMigrator
 
 
 def hash_card(r, v):
     return hashlib.sha512(bytes(f"{r}{v}", "utf-8")).hexdigest()
 
 
-def get_from_title(note_title, cards: [(str, str, any)]) -> int | None:
+def get_from_title(note_title: str, cards: [(str, str, any)]) -> int | None:
+    note_titles = ["\n".join(v).strip() for (_, v, _) in cards]
     try:
-        return list(map(lambda v: "\n".join(v[0]).strip(), cards)).index(
-            note_title.strip()
-        )
+        return note_titles.index(note_title.strip())
     except ValueError:
         return None
 
@@ -31,20 +30,20 @@ def get_converted_content_of_note(note, migrator):
 def strip_card(card):
     return (get_stripped_lines(card[0]), get_stripped_lines(card[1]), card[2])
 
+
 def gen_and_strip(input, gen):
     return list(map(strip_card, gen.gen_decks(input)))
 
+
 def convert(noteid, card, modelid):
-
     note = mw.col.get_note(noteid)
-
     old_notetype_id = note.note_type()["id"]
 
-    payload = mw.col.models.change_notetype_info(
+    req = mw.col.models.change_notetype_info(
         old_notetype_id=old_notetype_id, new_notetype_id=modelid
-    )
-    req = payload.input
-    req.note_ids.extend([noteid])
+    ).input
+    req.note_ids.append(noteid)
+
     mw.col.models.change_notetype_of_notes(req)
 
     note = mw.col.get_note(noteid)
@@ -77,7 +76,6 @@ def migrate_old_card(deck: anki.decks.Deck, folder: pathlib.Path):
                 cards.extend(gen_and_strip(file.read(), deck_gen))
 
     card_hash = [hash_card("\n".join(r), "\n".join(v)) for (r, v, _) in cards]
-
 
     model = mw.col.models.by_name("Ankill")
     for n, note_hash in enumerate(notes_hash):
