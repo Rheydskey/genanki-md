@@ -23,7 +23,7 @@ addon_path = pathlib.Path(os.path.dirname(__file__))
 # https://addon-docs.ankiweb.net/addon-config.html#user-files
 user_files = addon_path / "user_files"
 card_folder = user_files / "cards/"
-git_repo = "https://git.rheydskey.org/rheydskey/anki-md"
+git_repo = "__YOUR_REPO__"
 
 
 def init_deck(deck: anki.decks.Deck, folder: pathlib.Path):
