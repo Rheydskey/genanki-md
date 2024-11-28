@@ -88,16 +88,15 @@ def init() -> None:
         return
 
     # Initialize user_files folder
-    if not os.path.isdir(user_files):
-        os.remove(user_files)
-
     if not os.path.exists(user_files):
         os.makedirs(user_files)
+    elif not os.path.isdir(user_files):
+        os.makedirs(user_files)
+        os.remove(user_files)
 
     if not os.path.exists(card_folder):
         Git().clone(git_repo, card_folder)
-
-    if not os.path.isdir(card_folder):
+    elif not os.path.isdir(card_folder):
         os.remove(card_folder)
         Git().clone(git_repo, card_folder)
 
