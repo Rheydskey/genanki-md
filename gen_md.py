@@ -40,8 +40,9 @@ class DeckGenerator:
         self.mw = mw
 
     def refresh_hash(self) -> None:
-        notes = self.mw.col.find_notes(f"did:{self.did} note:Ankill")
-        self.hash_notes = [self.mw.col.get_note(note).fields[2] for note in notes]
+        note_ids = self.mw.col.find_notes(f"did:{self.did} note:Ankill")
+        notes = [self.mw.col.get_note(id) for id in note_ids]
+        self.hash_notes = [note.fields[2] for note in notes if len(note.fields) >= 3]
 
     def is_note_in_deck(self, s: str) -> bool:
         if self.hash_notes is None:
