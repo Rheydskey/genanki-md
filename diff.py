@@ -51,7 +51,8 @@ class DeleteFile:
 
     def _delete_one(self, source: str):
         stripped_lines = get_stripped_lines(source)
-        q = f"did:{self.deckid} hash:{hashlib.sha512(bytes("\n".join(stripped_lines), "utf-8")).hexdigest()}"
+        hash = hashlib.sha512(bytes("\n".join(stripped_lines), "utf-8")).hexdigest()
+        q = f"hash:{hash} did:{self.deckid} "
         mw.col.remove_notes(mw.col.find_notes(q))
 
     def delete(self):
@@ -68,7 +69,8 @@ class ModifiedFile:
 
     def _update(self, from_note, to_note):
         stripped_lines = get_stripped_lines(from_note)
-        q = f"did:{self.deckid} hash:{hashlib.sha512(bytes("\n".join(stripped_lines), "utf-8")).hexdigest()}"
+        hash = hashlib.sha512(bytes("\n".join(stripped_lines), "utf-8")).hexdigest()
+        q = f"hash:{hash} did:{self.deckid}"
         notes = mw.col.find_notes(q)
 
         if len(notes) == 0:

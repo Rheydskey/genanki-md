@@ -58,7 +58,7 @@ def convert(noteid, card, modelid):
 def migrate_old_card(deck: anki.decks.Deck, folder: pathlib.Path):
     did = deck["id"]
 
-    q = f"did:{did} -note:Ankill"
+    q = f"-note:Ankill did:{did}"
     notes = mw.col.find_notes(q)
     migrator = MdAnkiMigrator()
     notes_content = [get_converted_content_of_note(note, migrator) for note in notes]

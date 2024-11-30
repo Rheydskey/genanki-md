@@ -40,9 +40,9 @@ class DeckGenerator:
         self.mw = mw
 
     def refresh_hash(self) -> None:
-        note_ids = self.mw.col.find_notes(f"did:{self.did} note:Ankill")
+        note_ids = self.mw.col.find_notes(f"note:Ankill did:{self.did}")
         notes = [self.mw.col.get_note(id) for id in note_ids]
-        self.hash_notes = [note.fields[2] for note in notes if len(note.fields) >= 3]
+        self.hash_notes = [note.fields[2] for note in notes]
 
     def is_note_in_deck(self, s: str) -> bool:
         if self.hash_notes is None:
@@ -68,14 +68,13 @@ class DeckGenerator:
 
     def gen_decks(self, s: str) -> [(str, str, hash)]:
         gen_cards = []
-        stripped_lines = get_stripped_lines(s)
-        cards = self.get_md_cards(stripped_lines)
+        cards = self.get_md_cards(get_stripped_lines(s))
 
         for card in cards:
             extend_body = self.is_extend_body(card)
             lines = "\n".join(card)
             if not self.is_note_in_deck(lines):
-                card = CardGenerator(extend=extend_body).gen_note_with_hash(lines)
-                gen_cards.append(card)
+                gen_card = CardGenerator(extend=extend_body).gen_note_with_hash(lines)
+                gen_cards.append(gen_card)
 
         return gen_cards
