@@ -20,10 +20,9 @@ static_html = """
 """
 
 addon_path = pathlib.Path(os.path.dirname(__file__))
-# https://addon-docs.ankiweb.net/addon-config.html#user-files
+config = mw.addonManager.getConfig(__name__)
 user_files = addon_path / "user_files"
 card_folder = user_files / "cards/"
-git_repo = "__YOUR_REPO__"
 
 
 def init_deck(deck: anki.decks.Deck, folder: pathlib.Path):
@@ -83,8 +82,8 @@ def refresh_card(x):
 
 
 def init() -> None:
-    if git_repo == "__YOUR_REPO__":
-        showWarning("Please change the url of your git repo")
+    if "repo" not in config.keys() or config["repo"] == "__YOUR_REPO__":
+        showWarning("Please change the url of your git repo in config.json")
         return
 
     # Initialize user_files folder
@@ -95,10 +94,10 @@ def init() -> None:
         os.remove(user_files)
 
     if not os.path.exists(card_folder):
-        Git().clone(git_repo, card_folder)
+        Git().clone(config["repo"], card_folder)
     elif not os.path.isdir(card_folder):
         os.remove(card_folder)
-        Git().clone(git_repo, card_folder)
+        Git().clone(config["repo"], card_folder)
 
     mw.create_backup_now()
 
