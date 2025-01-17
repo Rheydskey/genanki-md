@@ -1,3 +1,4 @@
+from anki.decks import DeckDict
 from unidiff import PatchedFile, PatchSet
 from .git import Git
 from .gen_md import CardGenerator
@@ -6,7 +7,7 @@ from aqt import mw
 import hashlib
 
 
-def get_note_of_scope(source: str, nth) -> str:
+def get_note_of_scope(source: str, nth) -> None|str:
     """
     Return the note that contains nth line
     """
@@ -45,7 +46,7 @@ def create_note(s: str, deckid, model):
 
 
 class DeleteFile:
-    def __init__(self, from_source: str, deck: str):
+    def __init__(self, from_source: str, deck: DeckDict):
         self.from_source = from_source
         self.deckid = deck["id"]
 
@@ -61,7 +62,7 @@ class DeleteFile:
 
 
 class ModifiedFile:
-    def __init__(self, from_source: str, to_source: str, diff: PatchedFile, deck):
+    def __init__(self, from_source: str, to_source: str, diff: PatchedFile, deck: DeckDict):
         self.from_source = from_source
         self.to_source = to_source
         self.diff = diff

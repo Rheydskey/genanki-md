@@ -36,11 +36,11 @@ def init_deck(deck: anki.decks.Deck, folder: pathlib.Path):
         filename, fileext = os.path.splitext(entry)
         if entry.is_file() and fileext == ".md":
             with open(entry, "r") as file:
-                for recto, verso, hash in deck_gen.gen_decks(file.read()):
+                for recto, verso, card_hash in deck_gen.gen_decks(file.read()):
                     note = mw.col.new_note(model["id"])
                     note.fields[0] = recto
                     note.fields[1] = verso
-                    note.fields[2] = hash
+                    note.fields[2] = card_hash
                     mw.col.add_note(note, deck["id"])
 
 
@@ -50,8 +50,8 @@ def create_model():
     mw.col.models.add_field(model, recto)
     verso = mw.col.models.new_field("Verso")
     mw.col.models.add_field(model, verso)
-    hash = mw.col.models.new_field("Hash")
-    hash["collapsed"] = True
+    card_hash = mw.col.models.new_field("Hash")
+    card_hash["collapsed"] = True
     mw.col.models.add_field(model, hash)
     template = mw.col.models.new_template("Carte")
     template["qfmt"] = "{{Recto}}" + static_html
@@ -60,7 +60,7 @@ def create_model():
     return model
 
 
-def update_repo(e):
+def update_repo(_):
     os.chdir(card_folder)
     pull = Git().pull()
     if not pull.startswith("Updat"):
@@ -68,10 +68,9 @@ def update_repo(e):
         return
 
     lines = pull.splitlines()
-
     update = lines[0]
-    rev_from, rev_to = update.strip("Updating ").split("..")
-    return (rev_from, rev_to)
+
+    return update.strip("Updating ").split("..")
 
 
 def refresh_card(x):
@@ -90,14 +89,14 @@ def init() -> None:
     if not os.path.exists(user_files):
         os.makedirs(user_files)
     elif not os.path.isdir(user_files):
-        os.makedirs(user_files)
         os.remove(user_files)
+        os.makedirs(user_files)
 
     if not os.path.exists(card_folder):
-        Git().clone(config["repo"], card_folder)
+        Git().clone(config["repo"], str(card_folder))
     elif not os.path.isdir(card_folder):
         os.remove(card_folder)
-        Git().clone(config["repo"], card_folder)
+        Git().clone(config["repo"], str(card_folder))
 
     mw.create_backup_now()
 
@@ -115,8 +114,8 @@ def init() -> None:
                 nd.name = name
                 mw.col.decks.add_deck(nd)
 
-            id = mw.col.decks.id_for_name(name)
-            init_deck(mw.col.decks.get(id), folder)
+            did = mw.col.decks.id_for_name(name)
+            init_deck(mw.col.decks.get(did), folder)
 
     op = QueryOp(
         parent=mw,

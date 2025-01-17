@@ -28,7 +28,7 @@ def get_converted_content_of_note(note, migrator):
 
 
 def strip_card(card):
-    return (get_stripped_lines(card[0]), get_stripped_lines(card[1]), card[2])
+    return get_stripped_lines(card[0]), get_stripped_lines(card[1]), card[2]
 
 
 def gen_and_strip(input, gen):
