@@ -4,7 +4,8 @@ import marko
 from .marko_ext import EmbedLatex, EmbedLatexMixin
 from .utils import get_stripped_lines
 
-EmbedLatexExtension = marko.MarkoExtension(renderer_mixins=[EmbedLatexMixin], elements=[EmbedLatex])
+EmbedLatexExtension = marko.MarkoExtension(renderer_mixins=[EmbedLatexMixin],
+                                           elements=[EmbedLatex])
 
 
 class CardGenerator:

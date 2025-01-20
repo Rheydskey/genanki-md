@@ -7,7 +7,7 @@ from aqt import mw
 import hashlib
 
 
-def get_note_of_scope(source: str, nth) -> None|str:
+def get_note_of_scope(source: str, nth) -> None | str:
     """
     Return the note that contains nth line
     """
@@ -16,7 +16,7 @@ def get_note_of_scope(source: str, nth) -> None|str:
         return None
 
     start_line = None
-    for n, i in enumerate(lines[0 : nth + 1]):
+    for n, i in enumerate(lines[0: nth + 1]):
         if i.startswith("##"):
             start_line = n
     end_line = None
@@ -31,7 +31,7 @@ def get_note_of_scope(source: str, nth) -> None|str:
     if end_line is None:
         return "\n".join(lines[start_line:])
 
-    return "\n".join(lines[start_line : (start_line + end_line)])
+    return "\n".join(lines[start_line: (start_line + end_line)])
 
 
 def create_note(s: str, deckid, model):
@@ -62,7 +62,9 @@ class DeleteFile:
 
 
 class ModifiedFile:
-    def __init__(self, from_source: str, to_source: str, diff: PatchedFile, deck: DeckDict):
+    def __init__(
+        self, from_source: str, to_source: str, diff: PatchedFile, deck: DeckDict
+    ):
         self.from_source = from_source
         self.to_source = to_source
         self.diff = diff

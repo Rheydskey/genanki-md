@@ -1,12 +1,8 @@
 import sys
 import os
-import pathlib
 
-sys.path.insert(0, str(pathlib.Path(os.path.dirname(__file__))))
-
-
-print(__name__)
-
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'libs'))
 
 def run_addon():
     if "pytest" in sys.modules:
