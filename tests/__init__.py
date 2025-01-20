@@ -16,4 +16,4 @@ $$ \\begin{matrix} a & b \\\\ c & d \\end{matrix} $$
 """)
     print(recto)
     print(verso)
-    assert recto == "<h2>test</h2>\n" and verso == "<p>\\begin{matrix} a & b \\\\ c & d \\end{matrix}</p>\n"
+    assert recto == "<h2>test</h2>\n" and verso == "<p>$$ \\begin{matrix} a & b \\\\ c & d \\end{matrix} $$</p>\n"
