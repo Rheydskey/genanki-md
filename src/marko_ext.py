@@ -1,6 +1,5 @@
 import marko
 import re
-from typing import TYPE_CHECKING, Match, NamedTuple, Union
 
 
 class EmbedLatex(marko.inline.InlineElement):
