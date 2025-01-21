@@ -5,7 +5,7 @@ Block level elements
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any, Match, NamedTuple, Sequence, cast
+from typing import TYPE_CHECKING, Any, Match, NamedTuple, Sequence, cast, Union
 
 from . import inline, inline_parser, patterns
 from .element import Element
@@ -117,11 +117,11 @@ class Heading(BlockElement):
         self.inline_body = match.group(2).strip()
 
     @classmethod
-    def match(cls, source: Source) -> Match[str] | None:
+    def match(cls, source: Source) -> Union[Match[str], None]:
         return source.expect_re(cls.pattern)
 
     @classmethod
-    def parse(cls, source: Source) -> Match[str] | None:
+    def parse(cls, source: Source) -> Union[Match[str], None]:
         m = source.match
         source.consume()
         return m
@@ -220,7 +220,7 @@ class FencedCode(BlockElement):
         self.children = [inline.RawText(match[2], False)]
 
     @classmethod
-    def match(cls, source: Source) -> Match[str] | None:
+    def match(cls, source: Source) -> Union[Match[str], None]:
         m = source.expect_re(cls.pattern)
         if not m:
             return None
@@ -283,7 +283,7 @@ class HTMLBlock(BlockElement):
         self.body = lines
 
     @classmethod
-    def match(cls, source: Source) -> int | bool:
+    def match(cls, source: Source) -> Union[int, None]:
         source.context.html_end = None
         if source.expect_re(r"(?i) {,3}<(script|pre|style|textarea)[>\s]"):
             assert source.match
@@ -388,7 +388,7 @@ class Paragraph(BlockElement):
             source.match = prev_match
 
     @classmethod
-    def parse(cls, source: Source) -> list[str] | SetextHeading:
+    def parse(cls, source: Source) -> Union[list[str], SetextHeading]:
         lines = [cast(str, source.next_line())]
         source.consume()
         end_parse = False
@@ -431,7 +431,7 @@ class Quote(BlockElement):
     _prefix = r" {,3}>[^\n\S]?"
 
     @classmethod
-    def match(cls, source: Source) -> Match[str] | None:
+    def match(cls, source: Source) -> Union[Match[str], None]:
         return source.expect_re(r" {,3}>")
 
     @classmethod
@@ -592,7 +592,7 @@ class LinkRefDef(BlockElement):
         link_title: inline_parser.Group
         end: int
 
-    def __init__(self, label: str, text: str, title: str | None = None) -> None:
+    def __init__(self, label: str, text: str, title: Union[str, None] = None) -> None:
         self.label = label
         self.dest = text
         self.title = title

@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class Group(NamedTuple):
     start: int
     end: int
-    text: str | None
+    text: Union[str, None]
 
 
 _EMPTY_GROUP = Group(-1, -1, None)
@@ -86,8 +86,8 @@ def make_elements(
     tokens: list[Token],
     text: str,
     start: int = 0,
-    end: int | None = None,
-    fallback: ElementType | None = None,
+    end: Union[int, None] = None,
+    fallback: Union[ElementType, None] = None,
 ) -> list[InlineElement]:
     """Make elements from a list of parsed tokens.
     It will turn all unmatched holes into fallback elements.
@@ -225,7 +225,7 @@ def look_for_image_or_link(
     close: int,
     link_ref_defs: dict[str, tuple[str, str]],
     matches: list[MatchObj],
-) -> MatchObj | None:
+) -> Union[MatchObj, None]:
     for i, d in list(enumerate(delimiters))[::-1]:
         if d.content not in ("[", "!["):
             continue
@@ -276,7 +276,7 @@ def _parse_link_separator(text: str, start: int) -> int:
     return i
 
 
-def _parse_link_label(text: str, start: int) -> Group | None:
+def _parse_link_label(text: str, start: int) -> Union[Group, None]:
     if text[start : start + 1] != "[":
         return None
     i = find_next(text, "]", start + 1, disallowed="[")
@@ -354,7 +354,7 @@ def _parse_link_dest_title(
     return link_dest, link_title
 
 
-def _expect_inline_link(text: str, start: int) -> tuple[Group, Group, int] | None:
+def _expect_inline_link(text: str, start: int) -> Union[tuple[Group, Group, int], None]:
     """(link_dest "link_title")"""
     if start >= len(text) - 1 or text[start] != "(":
         return None
@@ -373,7 +373,7 @@ def _expect_inline_link(text: str, start: int) -> tuple[Group, Group, int] | Non
 
 def _expect_reference_link(
     text: str, start: int, link_text: str, link_ref_defs: dict[str, tuple[str, str]]
-) -> tuple[Group, Group, int] | None:
+) -> Union[tuple[Group, Group, int], None]:
     link_label = _parse_link_label(text, start)
     label = link_text
     if link_label is not None:
@@ -391,7 +391,7 @@ def _expect_reference_link(
 
 def _get_reference_link(
     link_label: str, link_ref_defs: dict[str, tuple[str, str]]
-) -> tuple[str, str] | None:
+) -> Union[tuple[str, str] , None]:
     normalized_label = normalize_label(link_label)
     return link_ref_defs.get(normalized_label)
 
@@ -399,7 +399,7 @@ def _get_reference_link(
 def process_emphasis(
     text: str,
     delimiters: list[Delimiter],
-    stack_bottom: int | None,
+    stack_bottom: Union[int, None],
     matches: list[MatchObj],
 ) -> None:
     star_bottom = underscore_bottom = stack_bottom
@@ -442,7 +442,7 @@ def process_emphasis(
     del delimiters[lower:]
 
 
-def _next_closer(delimiters: list[Delimiter], bound: int | None) -> int | None:
+def _next_closer(delimiters: list[Delimiter], bound: Union[int, None]) -> Union[int, None]:
     i = bound + 1 if bound is not None else 0
     while i < len(delimiters):
         d = delimiters[i]
@@ -453,8 +453,8 @@ def _next_closer(delimiters: list[Delimiter], bound: int | None) -> int | None:
 
 
 def _nearest_opener(
-    delimiters: list[Delimiter], higher: int, lower: int | None
-) -> int | None:
+    delimiters: list[Delimiter], higher: int, lower: Union[int, None]
+) -> Union[int, None]:
     i = higher - 1
     lower = lower if lower is not None else -1
     while i > lower:

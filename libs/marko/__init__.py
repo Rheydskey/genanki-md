@@ -12,7 +12,7 @@ r"""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable, cast
+from typing import TYPE_CHECKING, Iterable, cast, Union
 
 from .helpers import MarkoExtension, load_extension
 from .html_renderer import HTMLRenderer
@@ -51,7 +51,7 @@ class Markdown:
         self,
         parser: type[Parser] = Parser,
         renderer: type[Renderer] = HTMLRenderer,
-        extensions: Iterable[str | MarkoExtension] | None = None,
+        extensions: Union[Iterable[Union[str, MarkoExtension]], None] = None,
     ) -> None:
         if not issubclass(parser, Parser):
             raise TypeError("parser must be a subclass of Parser.")
