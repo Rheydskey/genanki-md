@@ -51,19 +51,19 @@ def init_deck(deck: anki.decks.Deck, folder: pathlib.Path):
                     mw.col.add_note(note, deck["id"])
 
 
-def create_model():
-    model = mw.col.models.new("Ankill")
-    recto = mw.col.models.new_field("Recto")
-    mw.col.models.add_field(model, recto)
-    verso = mw.col.models.new_field("Verso")
-    mw.col.models.add_field(model, verso)
-    card_hash = mw.col.models.new_field("Hash")
+def create_model(collection):
+    model = collection.models.new("Ankill")
+    recto = collection.models.new_field("Recto")
+    collection.models.add_field(model, recto)
+    verso = collection.models.new_field("Verso")
+    collection.models.add_field(model, verso)
+    card_hash = collection.models.new_field("Hash")
     card_hash["collapsed"] = True
-    mw.col.models.add_field(model, card_hash)
-    template = mw.col.models.new_template("Carte")
+    collection.models.add_field(model, card_hash)
+    template = collection.models.new_template("Carte")
     template["qfmt"] = "{{Recto}}" + static_html
     template["afmt"] = "{{FrontSide}}\n\n<hr id=answer>\n\n{{Verso}}"
-    mw.col.models.add_template(model, template)
+    collection.models.add_template(model, template)
     return model
 
 
@@ -118,7 +118,7 @@ def init() -> None:
     deck_name = [d["name"].lower() for d in deck]
 
     if "Ankill" not in [n.name for n in mw.col.models.all_names_and_ids()]:
-        mw.col.models.save(create_model())
+        mw.col.models.save(create_model(mw.col))
 
     for folder in card_folder.iterdir():
         name = folder.name.lower()

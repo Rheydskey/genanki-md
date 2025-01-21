@@ -1,5 +1,23 @@
+import os
+from anki.collection import Collection
 from src.gen_md import CardGenerator
+from src import create_model
 
+class FakeAnki:
+    def __init__(self):
+        self.path = "./test_collection"
+        self.col = None
+
+    def __enter__(self):
+        self.col = Collection(self.path)
+        return self.col
+
+    def __exit__(self, *args):
+        if self.col is None:
+            return
+
+        self.col.close()
+        os.remove(self.path)
 
 def test_basic():
     recto, verso = CardGenerator().gen_note("""## test
@@ -43,3 +61,10 @@ $$ a = b $$
     assert hash == ("2947533de7947e99abfc3dce9c18519321118d9e14bea6efd14dc701d"
                     + "dafb65ab69db2ebf0c7d3d60145be9fee014edfaac32ce1f38e859f"
                     + "4599ec9f09fdd595")
+
+def test_is_model_is_serializable():
+    with FakeAnki() as col:
+        print(col)
+        model = create_model(col)
+        import json
+        json.dumps(model)
