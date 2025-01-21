@@ -5,7 +5,7 @@ Inline(span) level elements
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Iterator, Pattern, Sequence
+from typing import TYPE_CHECKING, Iterator, Pattern, Sequence, Union
 
 from . import patterns
 from .element import Element
@@ -34,7 +34,7 @@ class InlineElement(Element):
     #: Use to denote the precedence in parsing.
     priority = 5
     #: element regex pattern.
-    pattern: Pattern[str] | str = ""
+    pattern: Union[Pattern[str], str] = ""
     #: whether to parse children.
     parse_children = False
     #: which match group to parse.
@@ -46,7 +46,7 @@ class InlineElement(Element):
     override = False
 
     if TYPE_CHECKING:
-        children: str | Sequence[Element]
+        children: Union[str, Sequence[Element]]
 
     def __init__(self, match: _Match) -> None:
         """Parses the matched object into an element"""

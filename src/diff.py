@@ -4,10 +4,11 @@ from .git import Git
 from .gen_md import CardGenerator
 from .utils import get_stripped_lines, is_extends
 from aqt import mw
+from typing import Union
 import hashlib
 
 
-def get_note_of_scope(source: str, nth) -> None | str:
+def get_note_of_scope(source: str, nth) -> Union[str, None]:
     """
     Return the note that contains nth line
     """

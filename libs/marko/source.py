@@ -4,7 +4,7 @@ import functools
 import re
 import types
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Generator, Match, Pattern, cast, overload
+from typing import TYPE_CHECKING, Generator, Match, Pattern, cast, overload, Union
 
 from marko.block import BlockElement, Document
 
@@ -28,7 +28,7 @@ class Source:
         self.pos = 0
         self._anchor = 0
         self._states: list[BlockElement] = []
-        self.match: Match[str] | None = None
+        self.match: Union[Match[str], None] = None
         #: Store temporary data during parsing.
         self.context = types.SimpleNamespace()
 
@@ -71,7 +71,7 @@ class Source:
         """The prefix of each line when parsing."""
         return "".join(s._prefix for s in self._states)
 
-    def _expect_re(self, regexp: Pattern[str] | str, pos: int) -> Match[str] | None:
+    def _expect_re(self, regexp: Union[Pattern[str], str], pos: int) -> Union[Match[str], None]:
         if isinstance(regexp, str):
             regexp = re.compile(regexp)
         return regexp.match(self._buffer, pos)
@@ -96,7 +96,7 @@ class Source:
                 return i
         return -1  # pragma: no cover
 
-    def expect_re(self, regexp: Pattern[str] | str) -> Match[str] | None:
+    def expect_re(self, regexp: Union[Pattern[str], str]) -> Union[Match[str], None]:
         """Test against the given regular expression and returns the match object.
         :param regexp: the expression to be tested.
         :returns: the match object.
@@ -115,9 +115,9 @@ class Source:
     def next_line(self, require_prefix: Literal[False] = ...) -> str: ...
 
     @overload
-    def next_line(self, require_prefix: Literal[True] = ...) -> str | None: ...
+    def next_line(self, require_prefix: Literal[True] = ...) -> Union[str, None]: ...
 
-    def next_line(self, require_prefix: bool = True) -> str | None:
+    def next_line(self, require_prefix: bool = True) -> Union[str, None]:
         """Return the next line in the source.
 
         :param require_prefix:  if False, the whole line will be returned.

@@ -8,7 +8,7 @@ import dataclasses
 import re
 from functools import partial
 from importlib import import_module
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, overload, Union
 
 from marko.renderer import Renderer
 
@@ -58,7 +58,7 @@ def find_next(
     text: str,
     target: Container[str],
     start: int = 0,
-    end: int | None = None,
+    end: Union[int, None] = None,
     disallowed: Container[str] = (),
 ) -> int:
     """Find the next occurrence of target in text, and return the index
@@ -140,7 +140,7 @@ class _RendererDispatcher:
     name: str
 
     def __init__(
-        self, types: type[Renderer] | tuple[type[Renderer], ...], func: RendererFunc
+        self, types: Union[type[Renderer], tuple[type[Renderer]], ...], func: RendererFunc
     ) -> None:
         from marko.ast_renderer import ASTRenderer, XMLRenderer
 
@@ -148,7 +148,7 @@ class _RendererDispatcher:
         self._mapping.setdefault((ASTRenderer, XMLRenderer), self.render_ast)
 
     def dispatch(
-        self: D, types: type[Renderer] | tuple[type[Renderer], ...]
+        self: D, types: Union[type[Renderer], tuple[type[Renderer]], ...]
     ) -> Callable[[RendererFunc], D]:
         def decorator(func: RendererFunc) -> D:
             self._mapping[types] = func
@@ -175,7 +175,7 @@ class _RendererDispatcher:
     @overload
     def __get__(self: D, obj: Renderer, owner: type) -> RendererFunc: ...
 
-    def __get__(self: D, obj: Renderer | None, owner: type) -> RendererFunc | D:
+    def __get__(self: D, obj: Union[Renderer, None], owner: type) -> Union[RendererFunc, D]:
         if obj is None:
             return self
         for types, func in self._mapping.items():
@@ -185,7 +185,7 @@ class _RendererDispatcher:
 
 
 def render_dispatch(
-    types: type[Renderer] | tuple[type[Renderer], ...]
+    types: Union[type[Renderer], tuple[type[Renderer], ...]]
 ) -> Callable[[RendererFunc], _RendererDispatcher]:
     def decorator(func: RendererFunc) -> _RendererDispatcher:
         return _RendererDispatcher(types, func)
