@@ -3,6 +3,7 @@ import anki
 import pathlib
 import hashlib
 from aqt import mw
+from typing import Union
 from .gen_md import DeckGenerator
 from .utils import get_stripped_lines
 from .migrators.mdanki import MdAnkiMigrator
@@ -12,7 +13,7 @@ def hash_card(r, v):
     return hashlib.sha512(bytes(f"{r}{v}", "utf-8")).hexdigest()
 
 
-def get_from_title(note_title: str, cards: [(str, str, any)]) -> int | None:
+def get_from_title(note_title: str, cards: [(str, str, any)]) -> Union[int, None]:
     note_titles = ["\n".join(v).strip() for (_, v, _) in cards]
     try:
         return note_titles.index(note_title.strip())
