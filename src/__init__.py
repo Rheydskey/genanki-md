@@ -59,7 +59,7 @@ def create_model():
     mw.col.models.add_field(model, verso)
     card_hash = mw.col.models.new_field("Hash")
     card_hash["collapsed"] = True
-    mw.col.models.add_field(model, hash)
+    mw.col.models.add_field(model, card_hash)
     template = mw.col.models.new_template("Carte")
     template["qfmt"] = "{{Recto}}" + static_html
     template["afmt"] = "{{FrontSide}}\n\n<hr id=answer>\n\n{{Verso}}"
