@@ -39,14 +39,14 @@ class CardGenerator:
 
 
 class DeckGenerator:
-    def __init__(self, did: anki.decks.DeckId, mw):
+    def __init__(self, did: anki.decks.DeckId, col):
         self.did = did
         self.hash_notes = None
-        self.mw = mw
+        self.col = col
 
     def refresh_hash(self) -> None:
-        note_ids = self.mw.col.find_notes(f"note:Ankill did:{self.did}")
-        notes = [self.mw.col.get_note(id) for id in note_ids]
+        note_ids = self.col.find_notes(f"note:Ankill did:{self.did}")
+        notes = [self.col.get_note(id) for id in note_ids]
         self.hash_notes = [note.fields[2] for note in notes]
 
     def is_note_in_deck(self, s: str) -> bool:

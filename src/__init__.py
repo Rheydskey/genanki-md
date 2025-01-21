@@ -32,23 +32,32 @@ user_files = addon_path / "user_files"
 card_folder = user_files / "cards/"
 
 
+def add_note_to_deck(notes: [(str, str, str)], mid: int, did: int, col):
+    """
+        mid: Model id
+        did: Deck id
+    """
+    for recto, verso, card_hash in notes:
+        note = col.new_note(mid)
+        note.fields[0] = recto
+        note.fields[1] = verso
+        note.fields[2] = card_hash
+        col.add_note(note, did)
+
+
 def init_deck(deck: anki.decks.Deck, folder: pathlib.Path):
     if not folder.is_dir():
         return
 
     migrate_old_card(deck, folder)
     model = mw.col.models.by_name("Ankill")
-    deck_gen = DeckGenerator(deck["id"], mw)
+    deck_gen = DeckGenerator(deck["id"], mw.col)
     for entry in folder.iterdir():
         filename, fileext = os.path.splitext(entry)
         if entry.is_file() and fileext == ".md":
             with open(entry, "r") as file:
-                for recto, verso, card_hash in deck_gen.gen_decks(file.read()):
-                    note = mw.col.new_note(model["id"])
-                    note.fields[0] = recto
-                    note.fields[1] = verso
-                    note.fields[2] = card_hash
-                    mw.col.add_note(note, deck["id"])
+                notes = deck_gen.gen_decks(file.read())
+                add_note_to_deck(notes, model["id"], deck["id"], mw.col)
 
 
 def create_model(collection):

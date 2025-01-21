@@ -20,14 +20,14 @@ def get_note_of_scope(source: str, nth) -> Union[str, None]:
     for n, i in enumerate(lines[0: nth + 1]):
         if i.startswith("##"):
             start_line = n
-    end_line = None
-
-    for n, i in enumerate(lines[nth:]):
-        if i.startswith("##"):
-            end_line = n
 
     if start_line is None:
         return None
+
+    end_line = None
+    for n, i in enumerate(lines[nth + 1:]):
+        if i.startswith("##"):
+            end_line = n
 
     if end_line is None:
         return "\n".join(lines[start_line:])

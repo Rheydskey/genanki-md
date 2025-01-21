@@ -3,3 +3,4 @@ cards
 __pycache__
 env/
 .idea/
+config.json

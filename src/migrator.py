@@ -37,6 +37,7 @@ def gen_and_strip(input, gen):
 
 
 def convert(noteid, card, modelid):
+    return
     note = mw.col.get_note(noteid)
     old_notetype_id = note.note_type()["id"]
 
