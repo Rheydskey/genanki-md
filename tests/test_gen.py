@@ -170,6 +170,6 @@ a silly cat
         print(id)
         dg = DeckGenerator(id, collection)
         cards = dg.gen_decks(source)
-        add_note_to_deck(cards, mid, id, col=collection)
+        add_note_to_deck(cards, mid, id, collection)
         print(collection.find_notes(f"did:{id}"))
         assert collection.note_count() == 2

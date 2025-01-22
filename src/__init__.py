@@ -32,17 +32,17 @@ user_files = addon_path / "user_files"
 card_folder = user_files / "cards/"
 
 
-def add_note_to_deck(notes: [(str, str, str)], mid: int, did: int, col):
+def add_note_to_deck(notes: [(str, str, str)], mid: int, did: int, collection: anki.collection.Collection):
     """
         mid: Model id
         did: Deck id
     """
     for recto, verso, card_hash in notes:
-        note = col.new_note(mid)
+        note = collection.new_note(mid)
         note.fields[0] = recto
         note.fields[1] = verso
         note.fields[2] = card_hash
-        col.add_note(note, did)
+        collection.add_note(note, did)
 
 
 def init_deck(deck: anki.decks.Deck, folder: pathlib.Path):

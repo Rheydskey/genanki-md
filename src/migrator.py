@@ -37,7 +37,6 @@ def gen_and_strip(input, gen):
 
 
 def convert(noteid, card, modelid):
-    return
     note = mw.col.get_note(noteid)
     old_notetype_id = note.note_type()["id"]
 
@@ -69,7 +68,7 @@ def migrate_old_card(deck: anki.decks.Deck, folder: pathlib.Path):
     if len(notes) == 0:
         return
 
-    deck_gen = DeckGenerator(deck["id"], mw)
+    deck_gen = DeckGenerator(deck["id"], mw.col)
     cards = []
     for entry in folder.iterdir():
         filename, fileext = os.path.splitext(entry)
