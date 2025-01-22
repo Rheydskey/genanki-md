@@ -1,9 +1,10 @@
 from anki.decks import DeckDict
 from unidiff import PatchedFile, PatchSet
 from .git import Git
-from .gen_md import CardGenerator
-from .utils import get_stripped_lines, is_extends
+from .gen_md import CardGenerator, DeckGenerator
+from .utils import get_stripped_lines, is_extends, add_note_to_deck
 from aqt import mw
+import anki
 from typing import Union
 import hashlib
 
@@ -47,15 +48,16 @@ def create_note(s: str, deckid, model):
 
 
 class DeleteFile:
-    def __init__(self, from_source: str, deck: DeckDict):
+    def __init__(self, from_source: str, deck: DeckDict, collection: anki.collection.Collection):
         self.from_source = from_source
         self.deckid = deck["id"]
+        self.collection = collection
 
     def _delete_one(self, source: str):
         stripped_lines = get_stripped_lines(source)
         hash = hashlib.sha512(bytes("\n".join(stripped_lines), "utf-8")).hexdigest()
         q = f"hash:{hash} did:{self.deckid} "
-        mw.col.remove_notes(mw.col.find_notes(q))
+        self.collection.remove_notes(self.collection.find_notes(q))
 
     def delete(self):
         for i in self.from_source.split("##"):
@@ -64,30 +66,32 @@ class DeleteFile:
 
 class ModifiedFile:
     def __init__(
-        self, from_source: str, to_source: str, diff: PatchedFile, deck: DeckDict
+        self, from_source: str, to_source: str, diff: PatchedFile, deck: DeckDict,
+        collection: anki.collection.Collection
     ):
         self.from_source = from_source
         self.to_source = to_source
         self.diff = diff
         self.deckid = deck["id"]
+        self.collection = collection
 
     def _update(self, from_note, to_note):
         stripped_lines = get_stripped_lines(from_note)
         hash = hashlib.sha512(bytes("\n".join(stripped_lines), "utf-8")).hexdigest()
         q = f"hash:{hash} did:{self.deckid}"
-        notes = mw.col.find_notes(q)
+        notes = self.collection.find_notes(q)
 
         if len(notes) == 0:
             return
 
-        unote = mw.col.get_note(notes[0])
+        unote = self.collection.get_note(notes[0])
         (recto, verso, hash) = CardGenerator(
             extend=is_extends(to_note)
         ).gen_note_with_hash(to_note)
         unote.fields[0] = recto
         unote.fields[1] = verso
         unote.fields[2] = hash
-        mw.col.update_note(unote)
+        self.collection.update_note(unote)
 
     def _update_one(self, hunk):
         from_note = get_note_of_scope(self.from_source, hunk.source_start)
@@ -108,7 +112,7 @@ class ModifiedFile:
 
         if self.__is_all_deleted_line(lines):
             note = get_note_of_scope(self.from_source, start_line)
-            DeleteFile(note, mw.col.decks.get(self.deckid)["name"]).delete()
+            DeleteFile(note, self.collection.decks.get(self.deckid)["name"]).delete()
             return
 
         if self.__is_all_added_line(lines):
@@ -123,7 +127,7 @@ class ModifiedFile:
         return
 
     def update(self):
-        model = mw.col.models.by_name("Ankill")
+        model = self.collection.models.by_name("Ankill")
         for hunk in self.diff:
             start_line = hunk.target_start
             buf = []
@@ -140,26 +144,29 @@ class ModifiedFile:
 
 
 class Diff:
-    def __init__(self, rev_from: str, rev_to: str):
+    def __init__(self, rev_from: str, rev_to: str, collection: anki.collection.Collection):
         self.rev_from = rev_from
         self.rev_to = rev_to
+        self.collection = collection
 
     def update_deck_and_notes(self):
         for i in PatchSet(Git().diff(self.rev_from, self.rev_to)):
             deck_name = i.path.split("/")[0]
-            deck = mw.col.decks.by_name(deck_name)
+            deck = self.collection.decks.by_name(deck_name)
             if not i.path.endswith(".md"):
                 continue
 
-            if i.is_added_file:
-                # TODO
-                continue
+            if i.is_added_file and not i.is_rename:
+                notes_source = Git().show(self.rev_to, i.path)
+                model = self.collection.models.by_name("Ankill")
+                notes = DeckGenerator(deck["id"], self.collection).gen_decks(notes_source)
+                add_note_to_deck(notes, model["id"], deck["id"], self.collection)
 
             if i.is_removed_file and not i.is_rename:
                 from_source = Git().show(self.rev_from, i.path)
-                DeleteFile(from_source, deck).delete()
+                DeleteFile(from_source, deck, self.collection).delete()
 
             if i.is_modified_file:
                 from_source = Git().show(self.rev_from, i.path)
                 to_source = Git().show(self.rev_to, i.path)
-                ModifiedFile(from_source, to_source, i, deck).update()
+                ModifiedFile(from_source, to_source, i, deck, self.collection).update()

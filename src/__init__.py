@@ -8,6 +8,7 @@ from aqt.operations import QueryOp
 
 sys.path.insert(0, str(pathlib.Path(os.path.dirname(__file__)) / ".." / "libs"))
 
+from .utils import add_note_to_deck
 from .gen_md import DeckGenerator
 from .diff import Diff
 from .git import Git
@@ -32,32 +33,19 @@ user_files = addon_path / "user_files"
 card_folder = user_files / "cards/"
 
 
-def add_note_to_deck(notes: [(str, str, str)], mid: int, did: int, collection: anki.collection.Collection):
-    """
-        mid: Model id
-        did: Deck id
-    """
-    for recto, verso, card_hash in notes:
-        note = collection.new_note(mid)
-        note.fields[0] = recto
-        note.fields[1] = verso
-        note.fields[2] = card_hash
-        collection.add_note(note, did)
-
-
-def init_deck(deck: anki.decks.Deck, folder: pathlib.Path):
+def init_deck(deck: anki.decks.Deck, folder: pathlib.Path, collection: anki.collection.Collection):
     if not folder.is_dir():
         return
 
-    migrate_old_card(deck, folder)
-    model = mw.col.models.by_name("Ankill")
-    deck_gen = DeckGenerator(deck["id"], mw.col)
+    migrate_old_card(deck, folder, collection)
+    model = collection.models.by_name("Ankill")
+    deck_gen = DeckGenerator(deck["id"], collection)
     for entry in folder.iterdir():
         filename, fileext = os.path.splitext(entry)
         if entry.is_file() and fileext == ".md":
             with open(entry, "r") as file:
                 notes = deck_gen.gen_decks(file.read())
-                add_note_to_deck(notes, model["id"], deck["id"], mw.col)
+                add_note_to_deck(notes, model["id"], deck["id"], collection)
 
 
 def create_model(collection):
@@ -89,11 +77,12 @@ def update_repo(_):
     return update.strip("Updating ").split("..")
 
 
-def refresh_card(x):
+def refresh_card(x, collection=None):
     if x is None:
         return
+    collection = mw.col if collection is None else collection
     (rev_from, rev_to) = x
-    Diff(rev_from, rev_to).update_deck_and_notes()
+    Diff(rev_from, rev_to, collection).update_deck_and_notes()
 
 
 def create_decks(path_folder: pathlib.Path, already_exists: [str], collection):
@@ -110,7 +99,7 @@ def fill_decks(path_folder: pathlib.Path, already_exists: [str], collection: ank
     for folder in path_folder.iterdir():
         if folder.is_dir() and not folder.name.startswith("."):
             did = collection.decks.id_for_name(folder.name)
-            init_deck(collection.decks.get(did), folder)
+            init_deck(collection.decks.get(did), folder, collection)
 
 
 def init() -> None:
