@@ -101,7 +101,7 @@ def init() -> None:
         return
     config = get_config()
     if config is None:
-        print("There is no config....")
+        showWarning("Copy config.json.default to config.json")
         return
 
     if "repo" not in config.keys() or config["repo"] == "__YOUR_REPO__":
