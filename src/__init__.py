@@ -96,6 +96,23 @@ def refresh_card(x):
     Diff(rev_from, rev_to).update_deck_and_notes()
 
 
+def create_decks(path_folder: pathlib.Path, already_exists: [str], collection):
+    for folder in path_folder.iterdir():
+        name = folder.name
+        if folder.is_dir() and not name.startswith("."):
+            if name.lower() not in already_exists:
+                nd = collection.decks.new_deck()
+                nd.name = name
+                collection.decks.add_deck(nd)
+
+
+def fill_decks(path_folder: pathlib.Path, already_exists: [str], collection: anki.collection.Collection):
+    for folder in path_folder.iterdir():
+        if folder.is_dir() and not folder.name.startswith("."):
+            did = collection.decks.id_for_name(folder.name)
+            init_deck(collection.decks.get(did), folder)
+
+
 def init() -> None:
     if "pytest" in sys.modules:
         return
@@ -129,16 +146,8 @@ def init() -> None:
     if "Ankill" not in [n.name for n in mw.col.models.all_names_and_ids()]:
         mw.col.models.save(create_model(mw.col))
 
-    for folder in card_folder.iterdir():
-        name = folder.name.lower()
-        if folder.is_dir() and not name.startswith("."):
-            if name not in deck_name:
-                nd = mw.col.decks.new_deck()
-                nd.name = name
-                mw.col.decks.add_deck(nd)
-
-            did = mw.col.decks.id_for_name(name)
-            init_deck(mw.col.decks.get(did), folder)
+    create_decks(card_folder, deck_name, mw.col)
+    fill_decks(card_folder, deck_name, mw.col)
 
     op = QueryOp(
         parent=mw,

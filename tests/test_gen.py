@@ -1,8 +1,10 @@
 import os
+import pathlib
+import shutil
 from anki.collection import Collection
 from src.diff import get_note_of_scope
 from src.gen_md import CardGenerator, DeckGenerator
-from src import create_model, add_note_to_deck
+from src import create_model, add_note_to_deck, create_decks
 from src.utils import get_stripped_lines, is_extends
 
 
@@ -18,6 +20,29 @@ class FakeAnki:
     def __exit__(self, *args):
         self.col.close()
         os.remove(self.path)
+
+
+class FakeFolder:
+    def __init__(self):
+        self.path = "./fake_folder"
+
+    def __enter__(self):
+        e = pathlib.Path(self.path)
+        source = """## test
+eeee"""
+        os.mkdir(e)
+        os.mkdir(e / "fcard")
+        with open(e / "fcard" / "card.md", "x") as f:
+            f.write(source)
+
+        os.mkdir(e / "vcard")
+        with open(e / "vcard" / "card.md", "x") as f:
+            f.write(source)
+
+        return e
+
+    def __exit__(self, *args):
+        shutil.rmtree(self.path)
 
 
 def test_basic():
@@ -173,3 +198,13 @@ a silly cat
         add_note_to_deck(cards, mid, id, collection)
         print(collection.find_notes(f"did:{id}"))
         assert collection.note_count() == 2
+
+
+def test_create_deck():
+    with FakeAnki() as collection:
+        with FakeFolder() as folder:
+            create_decks(folder, [], collection)
+        print(collection.decks.all())
+        # Decks from folders + default deck of anki
+        # 2 + 1 = 3
+        assert len(collection.decks.all()) == 3
