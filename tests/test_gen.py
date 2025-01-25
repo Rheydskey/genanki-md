@@ -2,11 +2,13 @@ import os
 import pathlib
 import shutil
 import subprocess
+import hashlib
 from anki.collection import Collection
 from src.diff import get_note_of_scope
 from src.gen_md import CardGenerator, DeckGenerator
 from src import create_model, add_note_to_deck, create_decks, fill_decks, refresh_card
 from src.utils import get_stripped_lines, is_extends
+from src.migrator import migrate_old_card
 
 basic_input = """## Blahaj
 A lovely shark"""
@@ -49,7 +51,7 @@ eeee"""
         shutil.rmtree(self.path)
 
 
-class TempPwd():
+class TempPwd:
     def __init__(self, path):
         self.path = path
 
@@ -78,7 +80,7 @@ class FakeGitRepo:
         shutil.rmtree(self.path)
 
 
-class GitHandler():
+class GitHandler:
     def __init__(self, path):
         self.path = path
 
@@ -123,6 +125,7 @@ $$ a = b $$
     assert recto == "<h2>test</h2>\n"
     assert verso == "<p>$$ a = b $$</p>\n"
 
+
 def test_table():
     recto, verso = CardGenerator().gen_note("""## test
 | P   | ¬P  |
@@ -133,7 +136,9 @@ def test_table():
     print(recto)
     print(verso)
     assert recto == "<h2>test</h2>\n"
-    assert verso == """<table>
+    assert (
+        verso
+        == """<table>
 <thead>
 <tr>
 <th>P</th>
@@ -150,6 +155,7 @@ def test_table():
 <td>0</td>
 </tr>
 </tbody></table>"""
+    )
 
 
 def test_hash():
@@ -161,9 +167,11 @@ $$ a = b $$
     print(hash)
     assert recto == "<h2>test</h2>\n"
     assert verso == "<p>$$ a = b $$</p>\n"
-    assert hash == ("2947533de7947e99abfc3dce9c18519321118d9e14bea6efd14dc701d"
-                    + "dafb65ab69db2ebf0c7d3d60145be9fee014edfaac32ce1f38e859f"
-                    + "4599ec9f09fdd595")
+    assert hash == (
+        "2947533de7947e99abfc3dce9c18519321118d9e14bea6efd14dc701d"
+        + "dafb65ab69db2ebf0c7d3d60145be9fee014edfaac32ce1f38e859f"
+        + "4599ec9f09fdd595"
+    )
 
 
 def test_extend():
@@ -185,6 +193,7 @@ def test_is_model_is_serializable():
         print(col)
         model = create_model(col)
         import json
+
         json.dumps(model)
 
 
@@ -196,6 +205,35 @@ cards"""
     assert a == source
 
 
+def test_note_of_scope_too_far():
+    source = """## Card
+cards"""
+
+    a = get_note_of_scope(source, 30)
+    assert a is None
+
+
+def test_note_of_scope_with_no_note():
+    # https://www.reddit.com/r/copypasta/comments/15mkg2b/im_a_skibidi_toilet_with_the_grimace_shake_in_ohio/
+    source = """im a skibidi toilet with the grimace shake in ohio
+with maximum sigma male gigachad big chungus doing the goofy
+ahh griddy with my garten of banban rizz while Monday left me
+broken when i was playing pizza tower Friday night fukin epic
+roblox moment skibidi bop bop bop yes yes while screaming as
+pizza tower charachters cause im gonna sauce you up nuh uh,
+im a skibidi toilet maximum ohio rizz with the sauce rizz you
+up l + ratio epic gamer number lore bussin sigma male skibidi
+bop bop mr beeeaast lightskin scare grimace shake pizza tower
+screaming boykisser furry slayer moment gamer!!!!!!!
+oh my among us! you just activated my ultimate ohio sus Friday
+night funkin oklahoma powers epicly i will lightskin stare at
+you till you combust into a million memes and i will get my
+ohio revenge!"""
+
+    a = get_note_of_scope(source, 0)
+    assert a is None
+
+
 def test_note_of_scope_multi_note():
     source = """## Card1
 card1
@@ -204,11 +242,17 @@ card1
 card2
 """
     first = get_note_of_scope(source, 0)
-    assert first == """## Card1
+    assert (
+        first
+        == """## Card1
 card1"""
+    )
     second = get_note_of_scope(source, 3)
-    assert second == """## Card2
+    assert (
+        second
+        == """## Card2
 card2"""
+    )
 
 
 def test_is_extends():
@@ -318,7 +362,11 @@ def test_diff_check():
                 f.write("ee")
 
             git.commit(["."], "Update note")
-            lines = [line.lstrip("commit ") for line in git.log().splitlines() if line.startswith("commit")]
+            lines = [
+                line.lstrip("commit ")
+                for line in git.log().splitlines()
+                if line.startswith("commit")
+            ]
             from_commit, to_commit = lines[1][0:6], lines[0][0:6]
             with TempPwd(folder):
                 refresh_card((from_commit, to_commit), collection=collection)
@@ -348,7 +396,11 @@ def test_diff_remove():
 
             os.remove(folder / "fcard" / "card.md")
             git.commit(["."], "Update note")
-            lines = [line.lstrip("commit ") for line in git.log().splitlines() if line.startswith("commit")]
+            lines = [
+                line.lstrip("commit ")
+                for line in git.log().splitlines()
+                if line.startswith("commit")
+            ]
             from_commit, to_commit = lines[1][0:6], lines[0][0:6]
             with TempPwd(folder):
                 refresh_card((from_commit, to_commit), collection=collection)
@@ -375,10 +427,14 @@ def test_diff_add_file():
             fill_decks(folder, [], collection)
 
             with open(folder / "fcard" / "card1.md", "x") as f:
-                f.write(basic_input+"ee")
+                f.write(basic_input + "ee")
 
             git.commit(["."], "Update note")
-            lines = [line.lstrip("commit ") for line in git.log().splitlines() if line.startswith("commit")]
+            lines = [
+                line.lstrip("commit ")
+                for line in git.log().splitlines()
+                if line.startswith("commit")
+            ]
             from_commit, to_commit = lines[1][0:6], lines[0][0:6]
             with TempPwd(folder):
                 refresh_card((from_commit, to_commit), collection=collection)
@@ -387,3 +443,106 @@ def test_diff_add_file():
         did = deckdict["id"]
 
         assert len(collection.find_notes(f"did:{did}")) == 2
+
+
+def test_mdanki_migration():
+    with FakeAnki() as collection:
+        with FakeFolder() as folder:
+            os.mkdir(folder / "test")
+            with open(folder / "test" / "patch-1.md", "w") as file:
+                file.write(basic_input)
+            collection.models.save(create_model(collection))
+            deck_test = collection.decks.new_deck()
+            deck_test.name = "test"
+            collection.decks.add_deck(deck_test)
+            deck_test = collection.decks.by_name("test")
+            basic = collection.models.by_name("Basic")
+            note = collection.new_note(basic["id"])
+            note.fields[0] = '<h2 id="blahaj">Blahaj</h2>'
+            note.fields[1] = "<p>A lovely shark</p>"
+            collection.add_note(note, deck_test["id"])
+            migrate_old_card(deck_test, folder / "test", collection)
+
+            for i in collection.find_cards(f"did:{deck_test['id']}"):
+                c = collection.get_card(i)
+                nt = c.note().note_type()
+                assert nt["name"] == "Ankill"
+                assert (
+                    c.note().values()[2]
+                    == hashlib.sha512(bytes(basic_input, "utf-8")).hexdigest()
+                )
+
+
+def test_mdanki_migration_with_br():
+    input = """## Blahaj
+A lovely shark
+
+aa
+a
+a
+a
+a
+aa"""
+
+    with FakeAnki() as collection:
+        with FakeFolder() as folder:
+            os.mkdir(folder / "test")
+            with open(folder / "test" / "patch-1.md", "w") as file:
+                file.write(input)
+            collection.models.save(create_model(collection))
+            deck_test = collection.decks.new_deck()
+            deck_test.name = "test"
+            collection.decks.add_deck(deck_test)
+            deck_test = collection.decks.by_name("test")
+            basic = collection.models.by_name("Basic")
+            note = collection.new_note(basic["id"])
+            note.fields[0] = '<h2 id="blahaj">Blahaj</h2>'
+            note.fields[1] = """<p>A lovely shark</p>
+<p>aa<br>a<br>a<br>a<br>a<br>aa</p>"""
+            collection.add_note(note, deck_test["id"])
+            migrate_old_card(deck_test, folder / "test", collection)
+
+            print(CardGenerator().gen_note(input))
+
+            for i in collection.find_cards(f"did:{deck_test['id']}"):
+                c = collection.get_card(i)
+                nt = c.note().note_type()
+                assert nt["name"] == "Ankill"
+                assert (
+                    c.note().values()[2]
+                    == hashlib.sha512(bytes(input, "utf-8")).hexdigest()
+                )
+
+
+def test_mdanki_migration_with_slash():
+    input = """## Blahaj
+A lovely shark
+eeee \\\\"""
+
+    with FakeAnki() as collection:
+        with FakeFolder() as folder:
+            os.mkdir(folder / "test")
+            with open(folder / "test" / "patch-1.md", "w") as file:
+                file.write(input)
+            collection.models.save(create_model(collection))
+            deck_test = collection.decks.new_deck()
+            deck_test.name = "test"
+            collection.decks.add_deck(deck_test)
+            deck_test = collection.decks.by_name("test")
+            basic = collection.models.by_name("Basic")
+            note = collection.new_note(basic["id"])
+            note.fields[0] = '<h2 id="blahaj">Blahaj</h2>'
+            note.fields[1] = """<p>A lovely shark<br>eeee \\</p>"""
+            collection.add_note(note, deck_test["id"])
+            migrate_old_card(deck_test, folder / "test", collection)
+
+            print(CardGenerator().gen_note(input))
+
+            for i in collection.find_cards(f"did:{deck_test['id']}"):
+                c = collection.get_card(i)
+                nt = c.note().note_type()
+                assert nt["name"] == "Ankill"
+                assert (
+                    c.note().values()[2]
+                    == hashlib.sha512(bytes(input, "utf-8")).hexdigest()
+                )

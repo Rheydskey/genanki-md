@@ -9,7 +9,7 @@ def run_addon():
     if "pytest" in sys.modules:
         return
 
-    import src
+    import src  # pragma: no cover
 
 
 run_addon()

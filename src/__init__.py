@@ -21,7 +21,7 @@ static_html = """
 """
 
 
-def get_config():
+def get_config():  # pragma: no cover
     if "pytest" in sys.modules:
         return None
 
@@ -34,9 +34,6 @@ card_folder = user_files / "cards/"
 
 
 def init_deck(deck: anki.decks.Deck, folder: pathlib.Path, collection: anki.collection.Collection):
-    if not folder.is_dir():
-        return
-
     migrate_old_card(deck, folder, collection)
     model = collection.models.by_name("Ankill")
     deck_gen = DeckGenerator(deck["id"], collection)
@@ -64,7 +61,7 @@ def create_model(collection):
     return model
 
 
-def update_repo(_):
+def update_repo(_):  # pragma: no cover
     os.chdir(card_folder)
     pull = Git().pull()
     if not pull.startswith("Updat"):
@@ -78,7 +75,7 @@ def update_repo(_):
 
 
 def refresh_card(x, collection=None):
-    if x is None:
+    if x is None:  # pragma: no cover
         return
     collection = mw.col if collection is None else collection
     (rev_from, rev_to) = x
@@ -102,7 +99,7 @@ def fill_decks(path_folder: pathlib.Path, already_exists: [str], collection: ank
             init_deck(collection.decks.get(did), folder, collection)
 
 
-def init() -> None:
+def init() -> None:  # pragma: no cover
     if "pytest" in sys.modules:
         return
     config = get_config()

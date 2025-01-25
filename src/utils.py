@@ -1,4 +1,5 @@
 import anki
+import hashlib
 
 
 def get_stripped_lines(s: str) -> [str]:
@@ -7,6 +8,7 @@ def get_stripped_lines(s: str) -> [str]:
 
 def is_extends(s: str):
     return any([i.startswith("%") for i in get_stripped_lines(s)])
+
 
 def add_note_to_deck(notes: [(str, str, str)], mid: int, did: int, collection: anki.collection.Collection):
     """
@@ -19,3 +21,7 @@ def add_note_to_deck(notes: [(str, str, str)], mid: int, did: int, collection: a
         note.fields[1] = verso
         note.fields[2] = card_hash
         collection.add_note(note, did)
+
+
+def hash_card(r, v):
+    return hashlib.sha512(bytes(f"{r}{v}", "utf-8")).hexdigest()
