@@ -123,6 +123,34 @@ $$ a = b $$
     assert recto == "<h2>test</h2>\n"
     assert verso == "<p>$$ a = b $$</p>\n"
 
+def test_table():
+    recto, verso = CardGenerator().gen_note("""## test
+| P   | ¬P  |
+|-----|-----|
+|  0  |  1  |
+|  1  |  0  |
+""")
+    print(recto)
+    print(verso)
+    assert recto == "<h2>test</h2>\n"
+    assert verso == """<table>
+<thead>
+<tr>
+<th>P</th>
+<th>¬P</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr>
+<td>1</td>
+<td>0</td>
+</tr>
+</tbody></table>"""
+
 
 def test_hash():
     recto, verso, hash = CardGenerator().gen_note_with_hash("""## test

@@ -3,6 +3,7 @@ import hashlib
 import marko
 from aqt import mw
 from .marko_ext import EmbedLatex, EmbedLatexMixin
+from marko.ext.gfm import make_extension
 from .utils import get_stripped_lines
 
 EmbedLatexExtension = marko.MarkoExtension(renderer_mixins=[EmbedLatexMixin],
@@ -16,6 +17,7 @@ class CardGenerator:
         self.verso = ""
         self.extend = extend
         self.marko.use(EmbedLatexExtension)
+        self.marko.use(make_extension())
 
     def fill_buffers(self, s: str):
         if self.extend:
