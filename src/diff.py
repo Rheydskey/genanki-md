@@ -153,6 +153,10 @@ class Diff:
         for i in PatchSet(Git().diff(self.rev_from, self.rev_to)):
             deck_name = i.path.split("/")[0]
             deck = self.collection.decks.by_name(deck_name)
+            if deck is None:
+                print(f"WARN: Deck({deck_name}) is none")
+                continue
+            
             if not i.path.endswith(".md"):
                 continue
 
