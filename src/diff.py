@@ -36,15 +36,15 @@ def get_note_of_scope(source: str, nth) -> Union[str, None]:
     return "\n".join(lines[start_line: (start_line + end_line)])
 
 
-def create_note(s: str, deckid, model):
-    note = mw.col.new_note(model["id"])
+def create_note(s: str, deckid, model, collection):
+    note = collection.new_note(model["id"])
 
     recto, verso, hash = CardGenerator(extend=is_extends(s)).gen_note_with_hash(s)
 
     note.fields[0] = recto
     note.fields[1] = verso
     note.fields[2] = hash
-    mw.col.add_note(note, deckid)
+    collection.add_note(note, deckid)
 
 
 class DeleteFile:
@@ -75,6 +75,10 @@ class ModifiedFile:
         self.deckid = deck["id"]
         self.collection = collection
 
+    def create(self, to_note):
+        model = self.collection.models.by_name("Ankill")
+        create_note(to_note, self.deckid, model, self.collection)
+
     def _update(self, from_note, to_note):
         stripped_lines = get_stripped_lines(from_note)
         hash = hashlib.sha512(bytes("\n".join(stripped_lines), "utf-8")).hexdigest()
@@ -96,7 +100,11 @@ class ModifiedFile:
     def _update_one(self, hunk):
         from_note = get_note_of_scope(self.from_source, hunk.source_start)
         to_note = get_note_of_scope(self.to_source, hunk.target_start)
-        self._update(from_note, to_note)
+        print("DD", from_note)
+        if from_note is None:
+            self.create(to_note)
+        else:
+            self._update(from_note, to_note)
 
     def __is_all_deleted_line(self, lines: [any]):
         return all([i.is_removed for i in lines])
@@ -107,6 +115,7 @@ class ModifiedFile:
     def create_or_update_note(self, lines: [any], start_line: int, model) -> None:
         # FIXME: Remove stripped line and strip on value. Side-effect ?
         str_lines = get_stripped_lines("\n".join([f.value for f in lines]))
+        print("EEE", str_lines)
         if len(str_lines) == 0:
             return
 
@@ -118,7 +127,7 @@ class ModifiedFile:
         if self.__is_all_added_line(lines):
             unote = get_note_of_scope(self.to_source, start_line)
 
-            create_note(unote, self.deckid, model)
+            create_note(unote, self.deckid, model, self.collection)
             return
 
         note = get_note_of_scope(self.from_source, start_line)
@@ -151,6 +160,7 @@ class Diff:
 
     def update_deck_and_notes(self):
         for i in PatchSet(Git().diff(self.rev_from, self.rev_to)):
+            # print(i)
             deck_name = i.path.split("/")[0]
             deck = self.collection.decks.by_name(deck_name)
             if deck is None:
@@ -171,6 +181,7 @@ class Diff:
                 DeleteFile(from_source, deck, self.collection).delete()
 
             if i.is_modified_file:
+                # print("THIS IS AN EDITED FILELLLLL")
                 from_source = Git().show(self.rev_from, i.path)
                 to_source = Git().show(self.rev_to, i.path)
                 ModifiedFile(from_source, to_source, i, deck, self.collection).update()

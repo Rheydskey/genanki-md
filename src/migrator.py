@@ -8,7 +8,7 @@ from .migrators.mdanki import MdAnkiMigrator
 
 
 def get_from_title(note_title: str, cards: [(str, str, any)]) -> Union[int, None]:
-    note_titles = ["\n".join(v).strip() for (_, v, _) in cards]
+    note_titles = ["\n".join(r).strip() for (r, _, _) in cards]
     try:
         return note_titles.index(note_title.strip())
     except ValueError:

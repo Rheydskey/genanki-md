@@ -1,14 +1,16 @@
+import string
+import random
 import os
 import pathlib
 import shutil
 import subprocess
 import hashlib
 from anki.collection import Collection
-from src.diff import get_note_of_scope
+from src.diff import get_note_of_scope, create_note
 from src.gen_md import CardGenerator, DeckGenerator
 from src import create_model, add_note_to_deck, create_decks, fill_decks, refresh_card
 from src.utils import get_stripped_lines, is_extends
-from src.migrator import migrate_old_card
+from src.migrator import migrate_old_card, get_from_title
 
 basic_input = """## Blahaj
 A lovely shark"""
@@ -16,7 +18,9 @@ A lovely shark"""
 
 class FakeAnki:
     def __init__(self):
-        self.path = "./test_collection"
+        # https://stackoverflow.com/questions/2257441/random-string-generation-with-upper-case-letters-and-digits
+        id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+        self.path = f"./test_collection-{id}"
         self.col = None
 
     def __enter__(self):
@@ -30,7 +34,8 @@ class FakeAnki:
 
 class FakeFolder:
     def __init__(self):
-        self.path = "./fake_folder"
+        id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+        self.path = f"./fake_folder-{id}"
 
     def __enter__(self):
         e = pathlib.Path(self.path)
@@ -445,6 +450,42 @@ def test_diff_add_file():
         assert len(collection.find_notes(f"did:{did}")) == 2
 
 
+def test_diff_add_note_to_file():
+    with FakeAnki() as collection:
+        with FakeGitRepo() as folder:
+            collection.models.save(create_model(collection))
+            git = GitHandler(folder)
+
+            os.mkdir(folder / "fcard")
+            with open(folder / "fcard" / "card.md", "x") as f:
+                f.write(basic_input)
+
+            git.commit(["."], "initial commit")
+
+            create_decks(folder, [], collection)
+            fill_decks(folder, [], collection)
+
+            with open(folder / "fcard" / "card.md", "a") as f:
+                f.write("""\n\n## Article I
+Les hommes naissent et demeurent libres et égaux en droits, les distinctions sociales ne peuvent être fondées que sur l'utilité commune""")
+
+            git.commit(["."], "Update note")
+            lines = [
+                line.lstrip("commit ")
+                for line in git.log().splitlines()
+                if line.startswith("commit")
+            ]
+            print(lines)
+            from_commit, to_commit = lines[1][0:6], lines[0][0:6]
+            with TempPwd(folder):
+                refresh_card((from_commit, to_commit), collection=collection)
+
+        deckdict = collection.decks.by_name("fcard")
+        did = deckdict["id"]
+
+        assert len(collection.find_notes(f"did:{did}")) == 3
+
+
 def test_mdanki_migration():
     with FakeAnki() as collection:
         with FakeFolder() as folder:
@@ -546,3 +587,92 @@ eeee \\\\"""
                     c.note().values()[2]
                     == hashlib.sha512(bytes(input, "utf-8")).hexdigest()
                 )
+
+def test_mdanki_migration_with_title():
+    input = """## Blahaj
+A lovely shark
+eeee \\\\"""
+
+    with FakeAnki() as collection:
+        with FakeFolder() as folder:
+            os.mkdir(folder / "test")
+            with open(folder / "test" / "patch-1.md", "w") as file:
+                file.write(input)
+            collection.models.save(create_model(collection))
+            deck_test = collection.decks.new_deck()
+            deck_test.name = "test"
+            collection.decks.add_deck(deck_test)
+            deck_test = collection.decks.by_name("test")
+            basic = collection.models.by_name("Basic")
+            note = collection.new_note(basic["id"])
+            note.fields[0] = '<h2 id="blahaj">Blahaj</h2>'
+            note.fields[1] = """<p>A lovely shark<br>eeeeeee \\</p>"""
+            collection.add_note(note, deck_test["id"])
+            migrate_old_card(deck_test, folder / "test", collection)
+
+            print(CardGenerator().gen_note(input))
+
+            for i in collection.find_cards(f"did:{deck_test['id']}"):
+                c = collection.get_card(i)
+                nt = c.note().note_type()
+                assert nt["name"] == "Ankill"
+                assert (
+                    c.note().values()[2]
+                    == hashlib.sha512(bytes(input, "utf-8")).hexdigest()
+                )
+
+
+def test_mdanki_migration_without_migration():
+    input = """## Blahaj
+A lovely shark
+eeee \\\\"""
+
+    with FakeAnki() as collection:
+        with FakeFolder() as folder:
+            os.mkdir(folder / "test")
+            with open(folder / "test" / "patch-1.md", "w") as file:
+                file.write(input)
+            collection.models.save(create_model(collection))
+            deck_test = collection.decks.new_deck()
+            deck_test.name = "test"
+            collection.decks.add_deck(deck_test)
+            deck_test = collection.decks.by_name("test")
+            basic = collection.models.by_name("Basic")
+            note = collection.new_note(basic["id"])
+            note.fields[0] = '<h2 id="blahaj">Blahajee</h2>'
+            note.fields[1] = """<p>A lovely shark<br>eeeeeee \\</p>"""
+            collection.add_note(note, deck_test["id"])
+            migrate_old_card(deck_test, folder / "test", collection)
+
+            print(CardGenerator().gen_note(input))
+
+            for i in collection.find_cards(f"did:{deck_test['id']}"):
+                c = collection.get_card(i)
+                nt = c.note().note_type()
+                assert nt["name"] == "Basic"
+
+
+def test_create_note():
+    with FakeAnki() as collection:
+        collection.models.save(create_model(collection))
+
+        deck_test = collection.decks.new_deck()
+        deck_test.name = "test"
+        collection.decks.add_deck(deck_test)
+
+        model = collection.models.by_name("Ankill")
+        deck_test = collection.decks.by_name("test")
+        create_note(basic_input, deck_test["id"], model, collection)
+
+        for i in collection.find_cards(f"did:{deck_test['id']}"):
+            c = collection.get_card(i)
+            recto, verso, hash = c.note().values()
+            assert recto == "<h2>Blahaj</h2>\n"
+            assert verso == "<p>A lovely shark</p>\n"
+            assert (
+                hash
+                == hashlib.sha512(bytes(basic_input, "utf-8")).hexdigest()
+            )
+
+
+
